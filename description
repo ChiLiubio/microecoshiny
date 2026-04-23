@@ -1,0 +1,63 @@
+Package: microecoshiny
+Type: Package
+Title: Interactive Microbiome Data Analysis Based on microeco
+Version: 0.1.0
+Authors@R: c(
+    person("Chi Liu", "Developer", email = "liuchi0426@126.com",
+           role = c("aut", "cre"), comment = c(ORCID = "0000-0003-4055-8677"))
+  )
+Description: An interactive Shiny application for comprehensive microbiome data analysis.
+    Built on top of the microeco R package, providing a user-friendly web interface
+    for data import, preprocessing, normalization, diversity analysis, differential
+    abundance testing, network analysis, null model analysis, functional prediction,
+    and machine learning classification. Supports QIIME2, BIOM, and standard file formats.
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+URL: https://github.com/ChiLiubio/microecoshiny
+BugReports: https://github.com/ChiLiubio/microecoshiny/issues
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Depends:
+    R (>= 4.1.0),
+    shiny (>= 1.7.0),
+    microeco (>= 2.1.0),
+    bs4Dash (>= 2.2.0)
+Imports:
+    attempt,
+    bslib,
+    config,
+    cowplot,
+    DT (>= 0.27),
+    dplyr (>= 1.1.0),
+    file2meco,
+    fresh,
+    ggplot2 (>= 3.4.0),
+    golem (>= 0.4.0),
+    htmltools,
+    htmlwidgets,
+    plotly (>= 4.10.0),
+    readxl,
+    shinyAce (>= 0.4.0),
+    shinycssloaders (>= 1.0.0),
+    shinyWidgets (>= 0.7.0),
+    shinyjqui,
+    stats,
+    utils,
+    writexl,
+    tidyr
+Suggests:
+    ape,
+    Biostrings,
+    knitr,
+    rmarkdown,
+    shinytest2 (>= 0.3.0),
+    testthat (>= 3.1.0),
+    data.table
+VignetteBuilder:
+    knitr
+Config/Needs/website:
+    pkgdown,
+    shinyWidgets,
+    bs4Dash
+R_CONFIG_ACTIVE: default
