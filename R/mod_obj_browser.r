@@ -247,11 +247,12 @@ mod_obj_browser_server <- function(id, rv) {
 
     # ---- Action buttons (only when an object is selected) ----
     output$action_buttons <- renderUI({
+      lang <- rv$current_language
       nm <- selected_obj()
       if (length(nm) != 1 || !isTRUE(nzchar(nm))) {
         return(tags$div(
           class = "action-placeholder",
-          "\u70b9\u51fb\u5bf9\u8c61\u540d\u79f0\u4ee5\u67e5\u770b\u8be6\u60c5"
+          tr("obj.browser.click_detail", lang)
         ))
       }
 
@@ -259,18 +260,18 @@ mod_obj_browser_server <- function(id, rv) {
 
       tagList(
         tags$div(class = "action-btn-group",
-          shiny::actionButton(ns("apply_btn"), "\u5e94\u7528", icon = icon("play"),
+          shiny::actionButton(ns("apply_btn"), tr("obj.browser.apply", lang), icon = icon("play"),
             class = "btn-sm btn-primary action-btn"),
-          shiny::actionButton(ns("copy_btn"), "\u590d\u5236", icon = icon("copy"),
+          shiny::actionButton(ns("copy_btn"), tr("obj.browser.copy", lang), icon = icon("copy"),
             class = "btn-sm btn-info action-btn"),
-          shiny::actionButton(ns("rename_btn"), "\u91cd\u547d\u540d", icon = icon("pencil-alt"),
+          shiny::actionButton(ns("rename_btn"), tr("obj.browser.rename", lang), icon = icon("pencil-alt"),
             class = "btn-sm btn-secondary action-btn"),
           shiny::actionButton(ns("delete_btn"), "", icon = icon("trash"),
             class = "btn-sm btn-outline-danger action-btn action-btn-danger")
         ),
         if (is_current) {
           tags$div(class = "active-label-full",
-            tags$i(class = "fas fa-check-circle"), " \u5f53\u524d\u6d3b\u8dc3"
+            tags$i(class = "fas fa-check-circle"), " ", tr("obj.browser.current_active", lang)
           )
         }
       )

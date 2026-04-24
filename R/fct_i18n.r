@@ -149,7 +149,44 @@ translations <- list(
     "mod.import.builtin_desc" = "Load microeco package built-in example dataset for testing and demonstration.",
     "mod.import.builtin_select" = "Select dataset",
     "mod.import.builtin_load" = "Load Data",
+    "mod.import.example_data" = "microeco example data",
+    "mod.import.data_ready" = "Data is ready. Go to other analysis modules to use it. Object name: ",
     "mod.import.qiime2_hint" = "QIIME2 import requires qiime2R package, currently RData import is recommended",
+
+    # ==============================
+    # Notification Messages
+    # ==============================
+    "mod.import.notify.loaded" = "Successfully loaded %s",
+    "mod.import.notify.file_not_found" = "File not found",
+    "mod.import.notify.microtable_loaded" = "microtable object loaded: %s",
+    "mod.import.notify.microtable_from_df" = "microtable built from data.frame: %s",
+    "mod.import.notify.invalid_object" = "Object '%s' is not a microtable or data.frame (type: %s)",
+    "mod.import.notify.no_feature_table" = "Feature Table not found, cannot build microtable",
+    "mod.import.notify.microtable_from_table" = "microtable built from table file",
+    "mod.import.notify.auto_import_unsupported" = "Auto-import not supported for this file type",
+    "mod.import.notify.builtin_loaded" = "Built-in example data loaded",
+    "mod.import.notify.qiime2_developing" = "QIIME2 import is under development, please use RData import",
+    "mod.import.notify.qiime2_tsv_developing" = "QIIME2 TSV import is under development, please use RData import",
+
+    # ==============================
+    # Data Preview
+    # ==============================
+    "mod.import.sample_vars_overview" = "Sample Variables Overview",
+    "mod.import.showing_rows" = "Showing %d rows x %d cols (of %d x %d total)",
+    "mod.import.showing_tax_rows" = "Showing %d rows (of %d total)",
+    "mod.import.numeric" = "numeric",
+    "mod.import.factor" = "factor",
+    "mod.import.min" = "min",
+    "mod.import.max" = "max",
+    "mod.import.na" = "NA",
+    "mod.import.levels" = "levels",
+    "mod.import.and_more" = "and %d more",
+    "mod.import.abund_table_combined" = "Abundance Table (combined)",
+    "mod.import.abund_table" = "Abundance Table",
+    "mod.import.tax_table" = "Taxonomy Table",
+    "mod.import.sample_info" = "Sample Info",
+    "mod.import.phylogenetic_tree" = "Phylogenetic Tree",
+    "mod.import.rep_seqs" = "Representative Sequences",
 
     # ==============================
     # Preprocess Module
@@ -191,6 +228,12 @@ translations <- list(
     "obj.browser.tax_levels" = "Taxonomic Levels",
     "obj.browser.seqs" = "Seqs",
     "obj.browser.comp_status" = "Component Status",
+    "obj.browser.click_detail" = "Click object name to view details",
+    "obj.browser.apply" = "Apply",
+    "obj.browser.copy" = "Copy",
+    "obj.browser.rename" = "Rename",
+    "obj.browser.current_active" = "Current Active",
+    "obj.browser.obj_saved" = "Object saved",
 
     # ==============================
     # Data Summary
@@ -272,6 +315,36 @@ translations <- list(
     "mod.composition.ggnested" = "ggplot Nested",
     "mod.composition.high_level_add_other" = "Higher Level Add Others",
     "mod.composition.plot" = "Composition Plot",
+    "mod.composition.facet.not_selected" = "No facet selected",
+    "mod.composition.x_axis_name" = "X-axis Name Column",
+    "mod.composition.legend_title" = "Legend Title",
+    "mod.composition.grid_clean" = "Remove Grid Lines",
+    "mod.composition.plot_numbers" = "Show Numbers",
+    "mod.composition.plot_text_size" = "Number Text Size",
+    "mod.composition.plot_colorscale" = "Color Scale",
+    "mod.composition.min_abundance" = "Min Abundance",
+    "mod.composition.max_abundance" = "Max Abundance",
+    "mod.composition.plot_breaks" = "Legend Breaks",
+    "mod.composition.withmargin" = "Keep Tile Margin",
+    "mod.composition.margincolor" = "Margin Color",
+    "mod.composition.pheatmap" = "Use Pheatmap",
+    "mod.composition.group" = "Group Column",
+    "mod.composition.show_point" = "Show Points",
+    "mod.composition.point_color" = "Point Color",
+    "mod.composition.point_size" = "Point Size",
+    "mod.composition.point_alpha" = "Point Transparency",
+    "mod.composition.plot_flip" = "Flip Plot",
+    "mod.composition.boxfill" = "Fill Box",
+    "mod.composition.middlecolor" = "Middle Line Color",
+    "mod.composition.middlesize" = "Middle Line Size",
+    "mod.composition.plot_SE" = "Show SE (mean±se)",
+    "mod.composition.errorbar_size" = "Error Bar Size",
+    "mod.composition.errorbar_width" = "Error Bar Width",
+    "mod.composition.line_size" = "Line Size",
+    "mod.composition.line_alpha" = "Line Transparency",
+    "mod.composition.line_type" = "Line Type",
+    "mod.composition.label" = "Show Labels",
+    "mod.composition.facet_switch" = "Facet Label Position",
 
     # ==============================
     # Alpha Diversity Module
@@ -612,7 +685,44 @@ translations <- list(
     "mod.import.builtin_desc" = "加载 microeco 包内置的示例数据集，用于测试和演示。",
     "mod.import.builtin_select" = "选择数据集",
     "mod.import.builtin_load" = "加载数据",
+    "mod.import.example_data" = "microeco 示例数据",
+    "mod.import.data_ready" = "数据已就绪，可前往其他分析模块使用。对象名: ",
     "mod.import.qiime2_hint" = "QIIME2 导入需要 qiime2R 包，当前建议使用 RData 导入",
+
+    # ==============================
+    # Notification Messages
+    # ==============================
+    "mod.import.notify.loaded" = "已成功加载 %s",
+    "mod.import.notify.file_not_found" = "未找到文件",
+    "mod.import.notify.microtable_loaded" = "✓ 已加载 microtable 对象: %s",
+    "mod.import.notify.microtable_from_df" = "✓ 已从 data.frame 构建 microtable: %s",
+    "mod.import.notify.invalid_object" = "对象 '%s' 不是 microtable 或 data.frame (类型: %s)",
+    "mod.import.notify.no_feature_table" = "未找到 Feature Table，无法构建 microtable",
+    "mod.import.notify.microtable_from_table" = "✓ 已从表格文件构建 microtable",
+    "mod.import.notify.auto_import_unsupported" = "暂不支持该文件类型的自动导入",
+    "mod.import.notify.builtin_loaded" = "✓ 已加载 microeco 内置示例数据",
+    "mod.import.notify.qiime2_developing" = "QIIME2 导入功能开发中，请使用 RData 导入",
+    "mod.import.notify.qiime2_tsv_developing" = "QIIME2 TSV 导入功能开发中，请使用 RData 导入",
+
+    # ==============================
+    # Data Preview
+    # ==============================
+    "mod.import.sample_vars_overview" = "样本变量概览",
+    "mod.import.showing_rows" = "显示前 %d 行 x %d 列（共 %d x %d）",
+    "mod.import.showing_tax_rows" = "显示前 %d 行（共 %d）",
+    "mod.import.numeric" = "数值",
+    "mod.import.factor" = "分类",
+    "mod.import.min" = "最小",
+    "mod.import.max" = "最大",
+    "mod.import.na" = "NA",
+    "mod.import.levels" = "水平",
+    "mod.import.and_more" = "等%d个",
+    "mod.import.abund_table_combined" = "丰度表 (混合)",
+    "mod.import.abund_table" = "丰度表",
+    "mod.import.tax_table" = "分类表",
+    "mod.import.sample_info" = "样本信息",
+    "mod.import.phylogenetic_tree" = "系统发育树",
+    "mod.import.rep_seqs" = "代表序列",
 
     # ==============================
     # Preprocess Module
@@ -654,6 +764,12 @@ translations <- list(
     "obj.browser.tax_levels" = "分类层级",
     "obj.browser.seqs" = "序列",
     "obj.browser.comp_status" = "组件状态",
+    "obj.browser.click_detail" = "点击对象名称以查看详情",
+    "obj.browser.apply" = "应用",
+    "obj.browser.copy" = "复制",
+    "obj.browser.rename" = "重命名",
+    "obj.browser.current_active" = "当前活跃",
+    "obj.browser.obj_saved" = "对象已保存",
 
     # ==============================
     # Data Summary
@@ -735,6 +851,36 @@ translations <- list(
     "mod.composition.ggnested" = "ggnested嵌套",
     "mod.composition.high_level_add_other" = "高层增加Others",
     "mod.composition.plot" = "组成图",
+    "mod.composition.facet.not_selected" = "未选择分面",
+    "mod.composition.x_axis_name" = "X轴名称列",
+    "mod.composition.legend_title" = "图例标题",
+    "mod.composition.grid_clean" = "清除网格线",
+    "mod.composition.plot_numbers" = "显示数值",
+    "mod.composition.plot_text_size" = "数值文字大小",
+    "mod.composition.plot_colorscale" = "色阶",
+    "mod.composition.min_abundance" = "最小丰度",
+    "mod.composition.max_abundance" = "最大丰度",
+    "mod.composition.plot_breaks" = "图例断点",
+    "mod.composition.withmargin" = "保留tile边距",
+    "mod.composition.margincolor" = "边距颜色",
+    "mod.composition.pheatmap" = "使用Pheatmap",
+    "mod.composition.group" = "分组列",
+    "mod.composition.show_point" = "显示点",
+    "mod.composition.point_color" = "点颜色",
+    "mod.composition.point_size" = "点大小",
+    "mod.composition.point_alpha" = "点透明度",
+    "mod.composition.plot_flip" = "翻转绘图",
+    "mod.composition.boxfill" = "填充盒子",
+    "mod.composition.middlecolor" = "中线颜色",
+    "mod.composition.middlesize" = "中线粗细",
+    "mod.composition.plot_SE" = "显示SE (mean±se)",
+    "mod.composition.errorbar_size" = "误差线粗细",
+    "mod.composition.errorbar_width" = "误差线宽度",
+    "mod.composition.line_size" = "线条粗细",
+    "mod.composition.line_alpha" = "线条透明度",
+    "mod.composition.line_type" = "线型",
+    "mod.composition.label" = "显示标签",
+    "mod.composition.facet_switch" = "分面标签位置",
 
     # ==============================
     # Alpha Diversity Module

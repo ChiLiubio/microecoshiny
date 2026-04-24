@@ -32,12 +32,14 @@ mod_composition_ui <- function(id, lang = "zh") {
             column(2, shinyWidgets::materialSwitch(ns("use_percentage"), tr("相对 (use_percentage)", "relative (use_percentage)"), value = TRUE, status = "primary"))
           ),
           fluidRow(
-            column(2, shinyWidgets::materialSwitch(ns("delete_taxonomy_lineage"), tr("删除分类层 (delete_taxonomy_lineage)", "delete_taxonomy_lineage"), value = TRUE, status = "success")),
-            column(2, shinyWidgets::materialSwitch(ns("delete_taxonomy_prefix"), tr("删除分类前缀 (delete_taxonomy_prefix)", "delete_taxonomy_prefix"), value = TRUE, status = "success")),
-            column(2, shiny::textInput(ns("prefix"), tr("定制前缀 (prefix)", "prefix"), value = "")),
-            column(2, shiny::selectInput(ns("high_level"), tr("补充更高层 (high_level)", "high_level"), choices = character(0))),
-            column(2, shiny::numericInput(ns("high_level_fix_nsub"), tr("更高层下的类数 (high_level_fix_nsub)", "high_level_fix_nsub"), value = NA, min = 1, max = 20)),
-            column(2, shinyWidgets::materialSwitch(ns("group_morestats"), tr("组统计详情 (group_morestats)", "group_morestats"), value = FALSE, status = "info"))
+            column(4, shinyWidgets::materialSwitch(ns("delete_taxonomy_lineage"), tr("mod.composition.delete_taxonomy_lineage", lang), value = TRUE, status = "success")),
+            column(4, shinyWidgets::materialSwitch(ns("delete_taxonomy_prefix"), tr("mod.composition.delete_taxonomy_prefix", lang), value = TRUE, status = "success")),
+            column(4, shiny::textInput(ns("prefix"), tr("mod.composition.prefix", lang), value = ""))
+          ),
+          fluidRow(
+            column(4, shiny::selectInput(ns("high_level"), tr("mod.composition.high_level", lang), choices = character(0))),
+            column(4, shiny::numericInput(ns("high_level_fix_nsub"), tr("mod.composition.high_level_fix_nsub", lang), value = NA, min = 1, max = 20)),
+            column(4, shinyWidgets::materialSwitch(ns("group_morestats"), tr("mod.composition.group_morestats", lang), value = FALSE, status = "info"))
           ),
           hr(),
           fluidRow(
@@ -350,8 +352,9 @@ mod_composition_server <- function(id, rv) {
     })
 
     output$facet_display <- renderUI({
+      lang <- rv$current_language
       if (is.null(local_rv$facet_cols) || length(local_rv$facet_cols) == 0) {
-        return(tags$span(class = "text-muted", "未选择分面"))
+        return(tags$span(class = "text-muted", tr("mod.composition.facet.not_selected", lang)))
       }
       tagList(lapply(seq_along(local_rv$facet_cols), function(i) {
         col <- local_rv$facet_cols[i]
@@ -467,8 +470,9 @@ mod_composition_server <- function(id, rv) {
     })
 
     output$facet_display_hm <- renderUI({
+      lang <- rv$current_language
       if (is.null(local_rv$facet_cols_hm) || length(local_rv$facet_cols_hm) == 0) {
-        return(tags$span(class = "text-muted", "未选择分面"))
+        return(tags$span(class = "text-muted", tr("mod.composition.facet.not_selected", lang)))
       }
       tagList(lapply(seq_along(local_rv$facet_cols_hm), function(i) {
         col <- local_rv$facet_cols_hm[i]

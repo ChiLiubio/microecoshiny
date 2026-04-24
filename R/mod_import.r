@@ -171,7 +171,7 @@ mod_import_ui <- function(id, lang = "zh") {
                 shiny::selectInput(
                   inputId = ns("builtin_dataset"),
                   label = tr("mod.import.builtin_select", lang),
-                  choices = c("microeco 示例数据 (dataset)" = "dataset"),
+                  choices = c("microeco example data (dataset)" = "dataset"),
                   selected = "dataset"
                 ),
                 shiny::actionButton(
@@ -417,7 +417,7 @@ mod_import_server <- function(id, rv) {
 
       # Trigger summary and preview
       update_summary()
-      showNotification(paste0("已成功加载 ", obj_name), type = "message", duration = 5)
+      showNotification(sprintf(tr("mod.import.notify.loaded", rv$current_language), obj_name), type = "message", duration = 5)
     }, ignoreNULL = TRUE)
 
     # ==================== Summary Display ====================
@@ -533,6 +533,7 @@ mod_import_server <- function(id, rv) {
 
       # Render data preview section
       output$data_preview_section <- renderUI({
+        lang <- rv$current_language
         info <- summary_info
         tagList(
           fluidRow(
@@ -558,7 +559,7 @@ mod_import_server <- function(id, rv) {
                 # Sample metadata columns
                 if (length(info$sample_cols) > 0) {
                   shiny::tabPanel(
-                    title = "样本变量概览",
+                    title = tr("mod.import.sample_vars_overview", lang),
                     shiny::uiOutput(ns("sample_vars_overview"))
                   )
                 }
@@ -570,12 +571,13 @@ mod_import_server <- function(id, rv) {
 
       # Feature table preview
       output$preview_otu <- DT::renderDataTable({
+        lang <- rv$current_language
         req(check_microtable(rv))
         otu <- rv$microtable$otu_table
         DT::datatable(
           as.data.frame(otu[1:min(50, nrow(otu)), 1:min(20, ncol(otu))]),
           options = list(scrollX = TRUE, pageLength = 10),
-          caption = paste0("显示前 50 行 x 前 20 列（共 ", nrow(otu), " x ", ncol(otu), "）")
+          caption = sprintf(tr("mod.import.showing_rows", lang), min(50, nrow(otu)), min(20, ncol(otu)), nrow(otu), ncol(otu))
         )
       })
 
@@ -591,17 +593,19 @@ mod_import_server <- function(id, rv) {
 
       # Taxonomy preview
       output$preview_tax <- DT::renderDataTable({
+        lang <- rv$current_language
         req(check_microtable(rv))
         tt <- rv$microtable$tax_table
         DT::datatable(
           as.data.frame(tt[1:min(50, nrow(tt)), ]),
           options = list(scrollX = TRUE, pageLength = 10),
-          caption = paste0("显示前 50 行（共 ", nrow(tt), "）")
+          caption = sprintf(tr("mod.import.showing_tax_rows", lang), min(50, nrow(tt)), nrow(tt))
         )
       })
 
       # Sample variables overview
       output$sample_vars_overview <- shiny::renderUI({
+        lang <- rv$current_language
         req(check_microtable(rv))
         st <- rv$microtable$sample_table
         if (is.null(st) || ncol(st) == 0) return(NULL)
@@ -611,19 +615,21 @@ mod_import_server <- function(id, rv) {
           if (is.numeric(val)) {
             tags$div(
               style = "padding: 5px; margin: 3px 0; background: #f0f4f8; border-radius: 4px;",
-              tags$strong(col), " [numeric]: ",
-              tags$small("min=", round(min(val, na.rm = TRUE), 2),
-                         " | max=", round(max(val, na.rm = TRUE), 2),
-                         " | NA=", sum(is.na(val)))
+              tags$strong(col), sprintf(" [%s]: ", tr("mod.import.numeric", lang)),
+              tags$small(
+                tr("mod.import.min", lang), "=", round(min(val, na.rm = TRUE), 2),
+                " | ", tr("mod.import.max", lang), "=", round(max(val, na.rm = TRUE), 2),
+                " | ", tr("mod.import.na", lang), "=", sum(is.na(val)))
             )
           } else {
             lvls <- unique(val)
             tags$div(
               style = "padding: 5px; margin: 3px 0; background: #f0f4f8; border-radius: 4px;",
-              tags$strong(col), " [factor]: ",
-              tags$small(length(lvls), " 水平: ",
-                         paste(head(lvls, 10), collapse = ", "),
-                         if (length(lvls) > 10) paste0(" ... 等", length(lvls), "个"))
+              tags$strong(col), sprintf(" [%s]: ", tr("mod.import.factor", lang)),
+              tags$small(
+                length(lvls), " ", tr("mod.import.levels", lang), ": ",
+                paste(head(lvls, 10), collapse = ", "),
+                if (length(lvls) > 10) paste0(" ... ", sprintf(tr("mod.import.and_more", lang), length(lvls))))
             )
           }
         })
@@ -632,10 +638,11 @@ mod_import_server <- function(id, rv) {
 
       # Status message
       output$import_status <- renderUI({
+        lang <- rv$current_language
         tags$div(
           class = "alert alert-success",
           icon("check-circle"),
-          paste0("数据已就绪，可前往其他分析模块使用。对象名: ", rv$microtable_name)
+          paste0(tr("mod.import.data_ready", lang), rv$microtable_name)
         )
       })
     })
@@ -691,6 +698,7 @@ mod_import_server <- function(id, rv) {
       }
 
       # Build file info table with detected role
+      lang <- rv$current_language
       file_info <- data.frame(
         name = files$name,
         size = sapply(files$size, function(s) format(object.size(rep(1, s)), units = "auto")),
@@ -699,13 +707,13 @@ mod_import_server <- function(id, rv) {
           if (!is.null(roles)) {
             if (!is.null(roles$feature)) {
               is_combined <- is.list(roles$feature) && !is.null(roles$feature$type) && roles$feature$type == "combined"
-              if (is_combined && roles$feature$name == fn) return("丰度表 (混合)")
+              if (is_combined && roles$feature$name == fn) return(tr("mod.import.abund_table_combined", lang))
             }
-            if (!is.null(roles$feature) && is.data.frame(roles$feature) && roles$feature$name == fn) return("丰度表")
-            if (!is.null(roles$taxonomy) && roles$taxonomy$name == fn) return("分类表")
-            if (!is.null(roles$sample) && roles$sample$name == fn) return("样本信息")
-            if (!is.null(roles$tree) && roles$tree$name == fn) return("系统发育树")
-            if (!is.null(roles$seq) && roles$seq$name == fn) return("代表序列")
+            if (!is.null(roles$feature) && is.data.frame(roles$feature) && roles$feature$name == fn) return(tr("mod.import.abund_table", lang))
+            if (!is.null(roles$taxonomy) && roles$taxonomy$name == fn) return(tr("mod.import.tax_table", lang))
+            if (!is.null(roles$sample) && roles$sample$name == fn) return(tr("mod.import.sample_info", lang))
+            if (!is.null(roles$tree) && roles$tree$name == fn) return(tr("mod.import.phylogenetic_tree", lang))
+            if (!is.null(roles$seq) && roles$seq$name == fn) return(tr("mod.import.rep_seqs", lang))
           }
           tolower(tools::file_ext(fn))
         }),
@@ -980,7 +988,7 @@ mod_import_server <- function(id, rv) {
         all_files <- input$data_files
         file_idx <- which(all_files$name == rdata_files$name[1])[1]
         if (is.na(file_idx)) {
-          showNotification("\u672a\u627e\u5230\u6587\u4ef6", type = "error")
+          showNotification(tr("mod.import.notify.file_not_found", rv$current_language), type = "error")
           return()
         }
 
@@ -1001,8 +1009,8 @@ mod_import_server <- function(id, rv) {
           rv$microtable <- obj
           rv$microtable_name <- obj_name
           rv$data_loaded <- TRUE
-          append_code(rv, paste0('# \u81ea\u52a8\u5bfc\u5165: \u4ece ', filename, ' \u52a0\u8f7d ', obj_name), "\u81ea\u52a8\u5bfc\u5165")
-          showNotification(paste0("\u2705 \u5df2\u52a0\u8f7d microtable \u5bf9\u8c61: ", obj_name), type = "message")
+          append_code(rv, paste0('# Auto import: load ', obj_name, ' from ', filename), "Auto import")
+          showNotification(sprintf(tr("mod.import.notify.microtable_loaded", rv$current_language), obj_name), type = "message")
           update_summary()
         } else if (is.data.frame(obj)) {
           result <- safe_run({
@@ -1013,14 +1021,14 @@ mod_import_server <- function(id, rv) {
             rv$microtable <- result$result
             rv$microtable_name <- obj_name
             rv$data_loaded <- TRUE
-            append_code(rv, paste0('# \u81ea\u52a8\u5bfc\u5165: \u4ece ', filename, ' \u7684 data.frame \u6784\u5efa microtable'), "\u81ea\u52a8\u5bfc\u5165")
-            showNotification(paste0("\u2705 \u5df2\u4ece data.frame \u6784\u5efa microtable: ", obj_name), type = "message")
+            append_code(rv, paste0('# Auto import: build microtable from data.frame in ', filename), "Auto import")
+            showNotification(sprintf(tr("mod.import.notify.microtable_from_df", rv$current_language), obj_name), type = "message")
             update_summary()
           } else {
             showNotification(result$error, type = "error", duration = 10)
           }
         } else {
-          showNotification(paste0("\u5bf9\u8c61 '", obj_name, "' \u4e0d\u662f microtable \u6216 data.frame (\u7c7b\u578b: ", paste(class(obj), collapse = "/"), ")"), type = "error")
+          showNotification(sprintf(tr("mod.import.notify.invalid_object", rv$current_language), obj_name, paste(class(obj), collapse = "/")), type = "error")
         }
 
       } else if (ft == "table") {
@@ -1028,7 +1036,7 @@ mod_import_server <- function(id, rv) {
         req(roles)
 
         if (is.null(roles$feature)) {
-          showNotification("\u672a\u627e\u5230 Feature Table\uff0c\u65e0\u6cd5\u6784\u5efa microtable", type = "error")
+          showNotification(tr("mod.import.notify.no_feature_table", rv$current_language), type = "error")
           return()
         }
 
@@ -1091,14 +1099,14 @@ mod_import_server <- function(id, rv) {
           rv$microtable <- result$result
           rv$microtable_name <- "auto_import"
           rv$data_loaded <- TRUE
-          append_code(rv, '# \u81ea\u52a8\u5bfc\u5165: \u4ece TSV/CSV \u6587\u4ef6\u6784\u5efa microtable', "\u81ea\u52a8\u5bfc\u5165")
-          showNotification("\u2705 \u5df2\u4ece\u8868\u683c\u6587\u4ef6\u6784\u5efa microtable", type = "message")
+          append_code(rv, '# Auto import: build microtable from TSV/CSV file', "Auto import")
+          showNotification(tr("mod.import.notify.microtable_from_table", rv$current_language), type = "message")
           update_summary()
         } else {
           showNotification(result$error, type = "error", duration = 10)
         }
       } else {
-        showNotification("\u6682\u4e0d\u652f\u6301\u8be5\u6587\u4ef6\u7c7b\u578b\u7684\u81ea\u52a8\u5bfc\u5165", type = "warning")
+        showNotification(tr("mod.import.notify.auto_import_unsupported", rv$current_language), type = "warning")
       }
     })
 
@@ -1117,8 +1125,8 @@ mod_import_server <- function(id, rv) {
         rv$microtable <- result$result
         rv$microtable_name <- "microeco_dataset"
         rv$data_loaded <- TRUE
-        append_code(rv, 'data(dataset, package = "microeco")\nmicroeco_dataset <- clone(dataset)', "\u6570\u636e\u5bfc\u5165 - \u5185\u7f6e\u6570\u636e")
-        showNotification("\u2705 \u5df2\u52a0\u8f7d microeco \u5185\u7f6e\u793a\u4f8b\u6570\u636e", type = "message")
+        append_code(rv, 'data(dataset, package = "microeco")\nmicroeco_dataset <- clone(dataset)', "Data import - Built-in data")
+        showNotification(tr("mod.import.notify.builtin_loaded", rv$current_language), type = "message")
         update_summary()
       } else {
         showNotification(result$error, type = "error", duration = 10)
@@ -1127,12 +1135,12 @@ mod_import_server <- function(id, rv) {
 
     # ==================== QIIME2 Import (placeholder) ====================
     observeEvent(input$build_qiime2, {
-      showNotification("QIIME2 \u5bfc\u5165\u529f\u80fd\u5f00\u53d1\u4e2d\uff0c\u8bf7\u4f7f\u7528 RData \u5bfc\u5165", type = "warning", duration = 5)
+      showNotification(tr("mod.import.notify.qiime2_developing", rv$current_language), type = "warning", duration = 5)
     })
 
     # ==================== QIIME2 TSV Import (placeholder) ====================
     observeEvent(input$build_tsv, {
-      showNotification("QIIME2 TSV \u5bfc\u5165\u529f\u80fd\u5f00\u53d1\u4e2d\uff0c\u8bf7\u4f7f\u7528 RData \u5bfc\u5165", type = "warning", duration = 5)
+      showNotification(tr("mod.import.notify.qiime2_tsv_developing", rv$current_language), type = "warning", duration = 5)
     })
 
   })
