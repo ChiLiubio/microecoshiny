@@ -287,7 +287,7 @@ mod_obj_browser_server <- function(id, rv) {
         old_name <- rv$microtable_name
         if (old_name != nm && !old_name %in% names(rv$workspace)) {
           rv$workspace[[old_name]] <- rv$microtable
-          showNotification(paste0("\U0001f4be \u5df2\u4fdd\u5b58\u5f53\u524d\u5bf9\u8c61: ", old_name), type = "message")
+          showNotification(sprintf(tr("obj.browser.obj_saved", rv$current_language), old_name), type = "message")
         }
       }
 
@@ -302,7 +302,7 @@ mod_obj_browser_server <- function(id, rv) {
         rv$data_loaded <- TRUE
       }
 
-      showNotification(paste0("\u2705 \u5df2\u5e94\u7528: ", nm), type = "message")
+      showNotification(sprintf(tr("obj.browser.applied", rv$current_language), nm), type = "message")
       append_code(rv, paste0('# \u5e94\u7528\u5bf9\u8c61: ', nm), "\u5bf9\u8c61\u6d4f\u89c8\u5668")
     })
 
@@ -313,18 +313,18 @@ mod_obj_browser_server <- function(id, rv) {
 
       modal_purpose("copy")
       showModal(shiny::modalDialog(
-        title = "\u590d\u5236\u5bf9\u8c61",
-        "\u8bf7\u8f93\u5165\u65b0\u5bf9\u8c61\u7684\u540d\u79f0\uff1a",
+        title = tr("obj.browser.copy_obj", rv$current_language),
+        tr("obj.browser.enter_new_name", rv$current_language),
         shiny::textInput(
           inputId = ns("modal_new_name"),
           label = NULL,
           value = paste0(nm, "_copy"),
-          placeholder = "\u65b0\u5bf9\u8c61\u540d\u79f0...",
+          placeholder = tr("obj.browser.new_name_placeholder", rv$current_language),
           width = "100%"
         ),
         footer = tagList(
-          shiny::modalButton("\u53d6\u6d88"),
-          shiny::actionButton(ns("modal_confirm"), "\u786e\u8ba4", class = "btn-primary")
+          shiny::modalButton(tr("obj.browser.cancel", rv$current_language)),
+          shiny::actionButton(ns("modal_confirm"), tr("obj.browser.confirm", rv$current_language), class = "btn-primary")
         ),
         easyClose = TRUE,
         size = "s"
@@ -337,11 +337,11 @@ mod_obj_browser_server <- function(id, rv) {
       new_name <- trimws(input$modal_new_name)
 
       if (length(new_name) != 1 || !isTRUE(nzchar(new_name))) {
-        showNotification("\u8bf7\u8f93\u5165\u540d\u79f0", type = "warning")
+        showNotification(tr("obj.browser.please_enter_name", rv$current_language), type = "warning")
         return()
       }
       if (new_name %in% names(rv$workspace) && new_name != nm) {
-        showNotification("\u5bf9\u8c61\u540d\u5df2\u5b58\u5728", type = "warning")
+        showNotification(tr("obj.browser.name_exists", rv$current_language), type = "warning")
         return()
       }
 
@@ -350,7 +350,7 @@ mod_obj_browser_server <- function(id, rv) {
       if (purpose == "copy") {
         result <- safe_run({
           src <- rv$workspace[[nm]] %||% rv$norm_data[[nm]] %||% rv$microtable
-          if (is.null(src)) stop("\u627e\u4e0d\u5230\u6e90\u5bf9\u8c61")
+          if (is.null(src)) stop(tr("obj.browser.source_not_found", rv$current_language))
 
           if (inherits(src, "microtable")) {
             cloned <- src$clone()
@@ -361,11 +361,11 @@ mod_obj_browser_server <- function(id, rv) {
           attr(cloned, "timestamp") <- Sys.time()
           rv$workspace[[new_name]] <- cloned
           new_name
-        }, "\u590d\u5236\u5931\u8d25")
+        }, tr("obj.browser.copy_failed", rv$current_language))
 
         if (result$success) {
-          showNotification(paste0("\u2705 \u5df2\u590d\u5236\u4e3a: ", new_name), type = "message")
-          append_code(rv, paste0('# \u590d\u5236\u5bf9\u8c61: ', nm, ' -> ', new_name), "\u5bf9\u8c61\u6d4f\u89c8\u5668")
+          showNotification(sprintf(tr("obj.browser.copied_as", rv$current_language), new_name), type = "message")
+          append_code(rv, paste0('# Copy object: ', nm, ' -> ', new_name), "Object Browser")
         } else {
           showNotification(result$error, type = "error", duration = 10)
           return()
@@ -383,12 +383,12 @@ mod_obj_browser_server <- function(id, rv) {
           }
           if (identical(rv$workspace_active, nm)) rv$workspace_active <- new_name
           new_name
-        }, "\u91cd\u547d\u540d\u5931\u8d25")
+        }, tr("obj.browser.rename_failed", rv$current_language))
 
         if (result$success) {
           selected_obj(new_name)
-          showNotification(paste0("\u2705 \u5df2\u91cd\u547d\u540d\u4e3a: ", new_name), type = "message")
-          append_code(rv, paste0('# \u91cd\u547d\u540d\u5bf9\u8c61: ', nm, ' -> ', new_name), "\u5bf9\u8c61\u6d4f\u89c8\u5668")
+          showNotification(sprintf(tr("obj.browser.rename_as", rv$current_language), new_name), type = "message")
+          append_code(rv, paste0('# Rename object: ', nm, ' -> ', new_name), "Object Browser")
         } else {
           showNotification(result$error, type = "error", duration = 10)
           return()
@@ -405,18 +405,18 @@ mod_obj_browser_server <- function(id, rv) {
 
       modal_purpose("rename")
       showModal(shiny::modalDialog(
-        title = "\u91cd\u547d\u540d\u5bf9\u8c61",
-        "\u8bf7\u8f93\u5165\u65b0\u5bf9\u8c61\u7684\u540d\u79f0\uff1a",
+        title = tr("obj.browser.rename_obj", rv$current_language),
+        tr("obj.browser.enter_new_name", rv$current_language),
         shiny::textInput(
           inputId = ns("modal_new_name"),
           label = NULL,
           value = nm,
-          placeholder = "\u65b0\u5bf9\u8c61\u540d\u79f0...",
+          placeholder = tr("obj.browser.new_name_placeholder", rv$current_language),
           width = "100%"
         ),
         footer = tagList(
-          shiny::modalButton("\u53d6\u6d88"),
-          shiny::actionButton(ns("modal_confirm"), "\u786e\u8ba4", class = "btn-primary")
+          shiny::modalButton(tr("obj.browser.cancel", rv$current_language)),
+          shiny::actionButton(ns("modal_confirm"), tr("obj.browser.confirm", rv$current_language), class = "btn-primary")
         ),
         easyClose = TRUE,
         size = "s"
@@ -444,7 +444,7 @@ mod_obj_browser_server <- function(id, rv) {
       }
 
       selected_obj(character(0))
-      showNotification(paste0("\u5df2\u5220\u9664: ", nm), type = "message")
+      showNotification(sprintf(tr("obj.browser.deleted", rv$current_language), nm), type = "message")
     })
 
     # ---- Detail section: only show selected object overview ----
@@ -521,7 +521,7 @@ mod_obj_browser_server <- function(id, rv) {
 
     # ---- Refresh (reactive auto-updates, button is just feedback) ----
     observeEvent(input$refresh_btn, {
-      showNotification("\u5df2\u5237\u65b0", type = "message", duration = 1)
+      showNotification(tr("obj.browser.refreshed", rv$current_language), type = "message", duration = 1)
     })
   })
 }

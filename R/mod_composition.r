@@ -32,14 +32,14 @@ mod_composition_ui <- function(id, lang = "zh") {
             column(2, shinyWidgets::materialSwitch(ns("use_percentage"), tr("相对 (use_percentage)", "relative (use_percentage)"), value = TRUE, status = "primary"))
           ),
           fluidRow(
-            column(4, shinyWidgets::materialSwitch(ns("delete_taxonomy_lineage"), tr("mod.composition.delete_taxonomy_lineage", lang), value = TRUE, status = "success")),
-            column(4, shinyWidgets::materialSwitch(ns("delete_taxonomy_prefix"), tr("mod.composition.delete_taxonomy_prefix", lang), value = TRUE, status = "success")),
-            column(4, shiny::textInput(ns("prefix"), tr("mod.composition.prefix", lang), value = ""))
+            column(4, shinyWidgets::materialSwitch(ns("delete_taxonomy_lineage"), tr("删除分类层 (delete_taxonomy_lineage)", "Delete Taxonomy Lineage"), value = TRUE, status = "success")),
+            column(4, shinyWidgets::materialSwitch(ns("delete_taxonomy_prefix"), tr("删除分类前缀 (delete_taxonomy_prefix)", "Delete Taxonomy Prefix"), value = TRUE, status = "success")),
+            column(4, shiny::textInput(ns("prefix"), tr("定制前缀 (prefix)", "Custom Prefix (prefix)"), value = ""))
           ),
           fluidRow(
-            column(4, shiny::selectInput(ns("high_level"), tr("mod.composition.high_level", lang), choices = character(0))),
-            column(4, shiny::numericInput(ns("high_level_fix_nsub"), tr("mod.composition.high_level_fix_nsub", lang), value = NA, min = 1, max = 20)),
-            column(4, shinyWidgets::materialSwitch(ns("group_morestats"), tr("mod.composition.group_morestats", lang), value = FALSE, status = "info"))
+            column(4, shiny::selectInput(ns("high_level"), tr("补充更高层 (high_level)", "Add Higher Level (high_level)"), choices = character(0))),
+            column(4, shiny::numericInput(ns("high_level_fix_nsub"), tr("更高层下的类数 (high_level_fix_nsub)", "Number of Sub Taxa at Higher Level (high_level_fix_nsub)"), value = NA, min = 1, max = 20)),
+            column(4, shinyWidgets::materialSwitch(ns("group_morestats"), tr("组统计详情 (group_morestats)", "Group Statistics Details (group_morestats)"), value = FALSE, status = "info"))
           ),
           hr(),
           fluidRow(

@@ -102,13 +102,13 @@ mod_preprocess_ui <- function(id, lang = "zh") {
     # Row 3: Rename Taxa + Merge Samples
     fluidRow(
       column(6, bs4Dash::box(title = if (lang == "zh") "\u270f 特征重命名" else "\u270f Rename Taxa", status = "primary", solidHeader = TRUE, width = NULL, collapsible = TRUE, shiny::textInput(inputId = ns("rename_prefix"), label = if (lang == "zh") "新名称前缀" else "New Name Prefix", placeholder = "e.g. ASV, OTU"), shiny::actionButton(inputId = ns("run_rename"), label = if (lang == "zh") "执行重命名" else "Run Rename", class = "btn-primary"))),
-      column(6, bs4Dash::box(title = if (lang == "zh") "\U0001f517 合并样本" else "\U0001f517 Merge Samples", status = "success", solidHeader = TRUE, width = NULL, collapsible = TRUE, shiny::selectInput(inputId = ns("merge_by"), label = if (lang == "zh") "按列合并" else "Merge By Column", choices = character(0)), shiny::selectInput(inputId = ns("merge_method"), label = if (lang == "zh") "合并方法" else "Merge Method", choices = c("sum" = "sum", "mean" = "mean"), selected = "sum"), shiny::actionButton(inputId = ns("run_merge"), label = if (lang == "zh") "执行合并" else "Run Merge", class = "btn-success")))
+      column(6, bs4Dash::box(title = if (lang == "zh") "\U0001f517 合并样本" else "\U0001f517 Merge Samples", status = "success", solidHeader = TRUE, width = NULL, collapsible = TRUE, shiny::uiOutput(ns("merge_by_ui")), shiny::selectInput(inputId = ns("merge_method"), label = if (lang == "zh") "合并方法" else "Merge Method", choices = c("sum" = "sum", "mean" = "mean"), selected = "sum"), shiny::actionButton(inputId = ns("run_merge"), label = if (lang == "zh") "执行合并" else "Run Merge", class = "btn-success")))
     ),
 
     # Row 4: Sample Subset + Factor Levels
     fluidRow(
-      column(6, bs4Dash::box(title = if (lang == "zh") "\U0001f4cb 样本子集" else "\U0001f4cb Sample Subset", status = "info", solidHeader = TRUE, width = NULL, collapsible = TRUE, shiny::selectInput(inputId = ns("subset_col"), label = if (lang == "zh") "筛选列" else "Filter Column", choices = character(0)), shinyWidgets::pickerInput(inputId = ns("subset_values"), label = if (lang == "zh") "筛选值（多选）" else "Filter Values (multiple)", choices = character(0), selected = character(0), multiple = TRUE, options = shinyWidgets::pickerOptions(actionsBox = TRUE)), shiny::actionButton(inputId = ns("run_subset"), label = if (lang == "zh") "执行筛选" else "Run Filter", class = "btn-info"))),
-      column(6, bs4Dash::box(title = if (lang == "zh") "\U0001f3a8 因子水平排序" else "\U0001f3a8 Factor Levels", status = "secondary", solidHeader = TRUE, width = NULL, collapsible = TRUE, shiny::selectInput(inputId = ns("factor_col"), label = if (lang == "zh") "选择因子列" else "Select Factor Column", choices = character(0)), shiny::uiOutput(ns("factor_levels_ui")), shiny::actionButton(inputId = ns("run_factor_levels"), label = if (lang == "zh") "应用排序" else "Apply Order", class = "btn-secondary")))
+      column(6, bs4Dash::box(title = if (lang == "zh") "\U0001f4cb 样本子集" else "\U0001f4cb Sample Subset", status = "info", solidHeader = TRUE, width = NULL, collapsible = TRUE, shiny::uiOutput(ns("subset_col_ui")), shinyWidgets::pickerInput(inputId = ns("subset_values"), label = if (lang == "zh") "筛选值（多选）" else "Filter Values (multiple)", choices = character(0), selected = character(0), multiple = TRUE, options = shinyWidgets::pickerOptions(actionsBox = TRUE)), shiny::actionButton(inputId = ns("run_subset"), label = if (lang == "zh") "执行筛选" else "Run Filter", class = "btn-info"))),
+      column(6, bs4Dash::box(title = if (lang == "zh") "\U0001f3a8 因子水平排序" else "\U0001f3a8 Factor Levels", status = "secondary", solidHeader = TRUE, width = NULL, collapsible = TRUE, shiny::uiOutput(ns("factor_col_ui")), shiny::uiOutput(ns("factor_levels_ui")), shiny::actionButton(inputId = ns("run_factor_levels"), label = if (lang == "zh") "应用排序" else "Apply Order", class = "btn-secondary")))
     )
   )
 }
@@ -129,17 +129,25 @@ mod_preprocess_server <- function(id, rv) {
     }
 
     # ===== Update sample column choices =====
-    observe({
-      if (!check_microtable(rv)) {
-        updateSelectInput(session, "merge_by", choices = character(0))
-        updateSelectInput(session, "subset_col", choices = character(0))
-        updateSelectInput(session, "factor_col", choices = character(0))
-        return()
-      }
+    output$merge_by_ui <- renderUI({
+      req(check_microtable(rv))
       cols <- get_sample_cols(rv)
-      updateSelectInput(session, "merge_by", choices = cols)
-      updateSelectInput(session, "subset_col", choices = cols)
-      updateSelectInput(session, "factor_col", choices = cols, selected = NULL)
+      lang <- rv$current_language
+      shiny::selectInput(inputId = ns("merge_by"), label = if (lang == "zh") "按列合并" else "Merge By Column", choices = cols)
+    })
+
+    output$subset_col_ui <- renderUI({
+      req(check_microtable(rv))
+      cols <- get_sample_cols(rv)
+      lang <- rv$current_language
+      shiny::selectInput(inputId = ns("subset_col"), label = if (lang == "zh") "筛选列" else "Filter Column", choices = cols)
+    })
+
+    output$factor_col_ui <- renderUI({
+      req(check_microtable(rv))
+      cols <- get_sample_cols(rv)
+      lang <- rv$current_language
+      shiny::selectInput(inputId = ns("factor_col"), label = if (lang == "zh") "选择因子列" else "Select Factor Column", choices = cols)
     })
 
     observeEvent(input$subset_col, {
@@ -414,14 +422,11 @@ mod_preprocess_server <- function(id, rv) {
         new_mt
       }, "\u5408\u5e76\u6837\u672c\u5931\u8d25")
       if (result$success) {
-        new_name <- paste0(rv$microtable_name, "_merged_", format(Sys.time(), "%H%M%S"))
+        new_name <- paste0(rv$microtable_name, "_merged_", input$merge_by)
         rv$workspace[[new_name]] <- result$result
-        rv$microtable <- result$result
-        rv$microtable_name <- new_name
         rv$workspace_active <- new_name
-        rv$data_loaded <- TRUE
         bump()
-        showNotification(paste0("\u2705 \u6837\u672c\u5408\u5e76\u5b8c\u6210\uff0c\u5df2\u81ea\u52a8\u5e94\u7528\u5bf9\u8c61: ", new_name), type = "message")
+        showNotification(paste0("\u2705 \u6837\u672c\u5408\u5e76\u5b8c\u6210\uff0c\u5df2\u521b\u5efa\u5bf9\u8c61: ", new_name), type = "message")
         append_code(rv, paste0(new_name, ' <- tmp_microtable$merge_samples(group = "', input$merge_by, '")\n', new_name, '$tidy_dataset()\n'), "\u6570\u636e\u9884\u5904\u7406 - \u5408\u5e76\u6837\u672c")
       } else { showNotification(result$error, type = "error", duration = 10) }
     })
