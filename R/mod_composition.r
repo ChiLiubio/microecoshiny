@@ -10,6 +10,15 @@
 mod_composition_ui <- function(id, lang = "zh") {
   ns <- NS(id)
   tr <- function(zh, en) if (lang == "en") en else zh
+  tt <- function(input_id, zh_tip, en_tip) {
+    tip <- if (lang == "en") en_tip else zh_tip
+    shiny::tags$script(HTML(paste0(
+      'setTimeout(function() {',
+      '  var lbl = $("label[for=', ns(input_id), ']");',
+      '  if (lbl.length) { lbl.attr("title", "', tip, '").css("cursor", "help"); }',
+      '}, 1000);'
+    )))
+  }
   tagList(
     fluidRow(
       column(12, h2(tr("\U0001f4ca 组成可视化 Composition", "\U0001f4ca Composition")))
@@ -24,22 +33,34 @@ mod_composition_ui <- function(id, lang = "zh") {
           collapsible = FALSE,
           h4(tr("基本参数", "Basic Parameters")),
           fluidRow(
-            column(2, shiny::selectInput(ns("taxrank"), tr("分类水平 (taxrank)", "taxrank"), choices = app_config$taxranks, selected = "Phylum")),
-            column(2, shinyWidgets::materialSwitch(ns("limit_ntaxa"), tr("限制 Taxa 数量", "Limit Taxa number"), value = TRUE, status = "primary")),
-            column(2, shiny::uiOutput(ns("ntaxa_ui"))),
-            column(2, shiny::numericInput(ns("show"), tr("相对丰度阈值 (show)", "RA threshold (show)"), value = 0, min = 0, max = 1, step = 0.0001)),
-            column(2, shiny::selectInput(ns("group_col"), tr("按组求均 (groupmean)", "groupmean"), choices = character(0))),
-            column(2, shinyWidgets::materialSwitch(ns("use_percentage"), tr("相对 (use_percentage)", "relative (use_percentage)"), value = TRUE, status = "primary"))
+            column(2, shiny::selectInput(ns("taxrank"), tr("分类水平 (taxrank)", "taxrank"), choices = app_config$taxranks, selected = "Phylum"),
+                   tt("taxrank", "选择分类层级（界门纲目科属种）", "Select taxonomic level (Kingdom to Species)")),
+            column(2, shinyWidgets::materialSwitch(ns("limit_ntaxa"), tr("限制 Taxa 数量", "Limit Taxa number"), value = TRUE, status = "primary"),
+                   tt("limit_ntaxa", "是否限制显示的 taxa 数量，开启后只显示丰度最高的 ntaxa 个", "Whether to limit the number of displayed taxa. When enabled, only shows the top ntaxa with highest abundance")),
+            column(2, shiny::uiOutput(ns("ntaxa_ui")),
+                   tt("ntaxa", "显示的最大 taxa 数量，仅当 limit_ntaxa 开启时有效", "Maximum number of taxa to display, only effective when limit_ntaxa is enabled")),
+            column(2, shiny::numericInput(ns("show"), tr("相对丰度阈值 (show)", "RA threshold (show)"), value = 0, min = 0, max = 1, step = 0.0001),
+                   tt("show", "相对丰度阈值，低于此值的 taxa 将被合并到 Others 组", "Relative abundance threshold, taxa below this value will be merged into Others group")),
+            column(2, shiny::selectInput(ns("group_col"), tr("按组求均 (groupmean)", "groupmean"), choices = character(0)),
+                   tt("group_col", "按此列对样本分组求均值，通常用于减少样本间差异", "Group samples by this column to calculate mean, commonly used to reduce inter-sample variation")),
+            column(2, shinyWidgets::materialSwitch(ns("use_percentage"), tr("相对 (use_percentage)", "relative (use_percentage)"), value = TRUE, status = "primary"),
+                   tt("use_percentage", "是否使用相对丰度（百分比）而非原始丰度值", "Whether to use relative abundance (percentage) instead of raw abundance values"))
           ),
           fluidRow(
-            column(4, shinyWidgets::materialSwitch(ns("delete_taxonomy_lineage"), tr("删除分类层 (delete_taxonomy_lineage)", "Delete Taxonomy Lineage"), value = TRUE, status = "success")),
-            column(4, shinyWidgets::materialSwitch(ns("delete_taxonomy_prefix"), tr("删除分类前缀 (delete_taxonomy_prefix)", "Delete Taxonomy Prefix"), value = TRUE, status = "success")),
-            column(4, shiny::textInput(ns("prefix"), tr("定制前缀 (prefix)", "Custom Prefix (prefix)"), value = ""))
+            column(4, shinyWidgets::materialSwitch(ns("delete_taxonomy_lineage"), tr("删除分类层 (delete_taxonomy_lineage)", "Delete Taxonomy Lineage"), value = TRUE, status = "success"),
+                   tt("delete_taxonomy_lineage", "是否删除分类层级中带有 uncultured、Unknown 等未培养或未知标签的分类单元", "Whether to delete taxa with uncultured, Unknown or similar labels in taxonomy lineage")),
+            column(4, shinyWidgets::materialSwitch(ns("delete_taxonomy_prefix"), tr("删除分类前缀 (delete_taxonomy_prefix)", "Delete Taxonomy Prefix"), value = TRUE, status = "success"),
+                   tt("delete_taxonomy_prefix", "是否删除指定前缀的分类单元", "Whether to delete taxa with specified prefix")),
+            column(4, shiny::textInput(ns("prefix"), tr("定制前缀 (prefix)", "Custom Prefix (prefix)"), value = ""),
+                   tt("prefix", "自定义分类前缀，用于删除包含该前缀的分类单元", "Custom taxonomy prefix used to delete taxa containing this prefix"))
           ),
           fluidRow(
-            column(4, shiny::selectInput(ns("high_level"), tr("补充更高层 (high_level)", "Add Higher Level (high_level)"), choices = character(0))),
-            column(4, shiny::numericInput(ns("high_level_fix_nsub"), tr("更高层下的类数 (high_level_fix_nsub)", "Number of Sub Taxa at Higher Level (high_level_fix_nsub)"), value = NA, min = 1, max = 20)),
-            column(4, shinyWidgets::materialSwitch(ns("group_morestats"), tr("组统计详情 (group_morestats)", "Group Statistics Details (group_morestats)"), value = FALSE, status = "info"))
+            column(4, shiny::selectInput(ns("high_level"), tr("补充更高层 (high_level)", "Add Higher Level (high_level)"), choices = character(0)),
+                   tt("high_level", "为低层级 taxa 补充更高的分类层级，使数据更完整", "Add higher taxonomic level for lower-level taxa to make data more complete")),
+            column(4, shiny::numericInput(ns("high_level_fix_nsub"), tr("更高层下的类数 (high_level_fix_nsub)", "Number of Sub Taxa at Higher Level (high_level_fix_nsub)"), value = NA, min = 1, max = 20),
+                   tt("high_level_fix_nsub", "在更高层级下每个分类单元包含的子分类单元数量", "Number of sub-taxa under each taxon at the higher level")),
+            column(4, shinyWidgets::materialSwitch(ns("group_morestats"), tr("组统计详情 (group_morestats)", "Group Statistics Details (group_morestats)"), value = FALSE, status = "info"),
+                   tt("group_morestats", "是否显示详细的组统计信息（包括均值、标准差等）", "Whether to display detailed group statistics (mean, SD, etc.)"))
           ),
           hr(),
           fluidRow(
@@ -52,137 +73,213 @@ mod_composition_ui <- function(id, lang = "zh") {
           shiny::conditionalPanel(condition = "input.plot_type == 'bar'", ns = ns,
             h4(tr("柱状图参数", "Bar Plot Parameters")),
             fluidRow(
-              column(2, shinyWidgets::materialSwitch(ns("bar_full"), tr("完整柱状 (bar_full)", "bar_full"), value = TRUE, status = "info")),
+              column(2, shinyWidgets::materialSwitch(ns("bar_full"), tr("完整柱状 (bar_full)", "bar_full"), value = TRUE, status = "info"),
+                     tt("bar_full", "是否铺满整个面板，控制柱状图是否占满可用空间", "Whether to fill the entire panel, controls whether bar chart occupies all available space")),
               column(2, shiny::selectInput(ns("color_theme"), tr("颜色 (color_theme)", "color_theme"),
-                choices = c("Dark2", "Set1", "Set2", "Set3", "Paired", "Spectral", "Viridis"), selected = "Dark2")),
-              column(2, shiny::textInput(ns("others_color"), tr("其他色 (others_color)", "others_color"), value = "grey90")),
-              column(2, shiny::numericInput(ns("barwidth"), tr("柱宽 (barwidth)", "barwidth"), value = 0.9, min = 0.5, max = 1, step = 0.1)),
-              column(2, shinyWidgets::materialSwitch(ns("use_alluvium"), tr("alluvium图 (use_alluvium)", "use_alluvium"), value = FALSE, status = "warning")),
-              column(2, shinyWidgets::materialSwitch(ns("coord_flip"), tr("翻转 (coord_flip)", "coord_flip"), value = FALSE, status = "success"))
+                choices = c("Dark2", "Set1", "Set2", "Set3", "Paired", "Spectral", "Viridis"), selected = "Dark2"),
+                     tt("color_theme", "柱状图颜色主题，可选 Dark2、Set1 等调色板", "Color theme for bar chart, options include Dark2, Set1 and other palettes")),
+              column(2, shiny::textInput(ns("others_color"), tr("其他色 (others_color)", "others_color"), value = "grey90"),
+                     tt("others_color", "Others 组的显示颜色，默认 grey90", "Display color for Others group, default grey90")),
+              column(2, shiny::numericInput(ns("barwidth"), tr("柱宽 (barwidth)", "barwidth"), value = 0.9, min = 0.5, max = 1, step = 0.1),
+                     tt("barwidth", "单个柱子的宽度（0.5-1），越大柱子越宽", "Width of individual bars (0.5-1), larger values make wider bars")),
+              column(2, shinyWidgets::materialSwitch(ns("use_alluvium"), tr("alluvium图 (use_alluvium)", "use_alluvium"), value = FALSE, status = "warning"),
+                     tt("use_alluvium", "是否使用河流图（alluvium）样式代替普通柱状图", "Whether to use alluvium style instead of regular bar chart")),
+              column(2, shinyWidgets::materialSwitch(ns("coord_flip"), tr("翻转 (coord_flip)", "coord_flip"), value = FALSE, status = "success"),
+                     tt("coord_flip", "是否翻转坐标系，使柱状图水平显示", "Whether to flip coordinates to display horizontal bar chart"))
             ),
             fluidRow(
-              column(2, shiny::actionButton(ns("order_x_btn"), tr("▬ X排序", "▬ X Order"), class = "btn-outline-secondary", width = "100%")),
-              column(2, shiny::actionButton(ns("facet_btn"), tr("▬ 分面 Facet", "▬ Facet"), class = "btn-outline-secondary", width = "100%")),
+              column(2, shiny::actionButton(ns("order_x_btn"), tr("▬ X排序", "▬ X Order"), class = "btn-outline-secondary", width = "100%"),
+                     tt("order_x_btn", "设置 X 轴样本排序顺序", "Set X-axis sample order")),
+              column(2, shiny::actionButton(ns("facet_btn"), tr("▬ 分面 Facet", "▬ Facet"), class = "btn-outline-secondary", width = "100%"),
+                     tt("facet_btn", "设置分面列进行分面绘图", "Set facet column for faceted plotting")),
               column(8, uiOutput(ns("facet_display")))
             ),
             fluidRow(
-              column(2, shinyWidgets::materialSwitch(ns("clustering"), tr("增加聚类 (clustering)", "clustering"), value = FALSE, status = "warning")),
-              column(2, shinyWidgets::materialSwitch(ns("clustering_plot"), tr("增加聚图 (clustering_plot)", "clustering_plot"), value = FALSE, status = "warning")),
-              column(2, shiny::numericInput(ns("cluster_plot_width"), tr("聚图宽 (cluster_plot_width)", "cluster_plot_width"), value = 0.2, min = 0.1, max = 0.5, step = 0.05)),
-              column(2, shiny::textInput(ns("facet_color"), tr("分面色 (facet_color)", "facet_color"), value = "grey95")),
-              column(2, shiny::numericInput(ns("strip_text"), tr("分面字大 (strip_text)", "strip_text"), value = 11, min = 8, max = 16)),
-              column(2, shinyWidgets::materialSwitch(ns("xtext_keep"), tr("X字 (xtext_keep)", "xtext_keep"), value = TRUE, status = "info"))
+              column(2, shinyWidgets::materialSwitch(ns("clustering"), tr("增加聚类 (clustering)", "clustering"), value = FALSE, status = "warning"),
+                     tt("clustering", "是否在图中添加聚类树，基于 taxa 丰度模式", "Whether to add clustering tree based on taxa abundance patterns")),
+              column(2, shinyWidgets::materialSwitch(ns("clustering_plot"), tr("增加聚图 (clustering_plot)", "clustering_plot"), value = FALSE, status = "warning"),
+                     tt("clustering_plot", "是否在聚类后添加聚类图展示", "Whether to display clustering plot after clustering")),
+              column(2, shiny::numericInput(ns("cluster_plot_width"), tr("聚图宽 (cluster_plot_width)", "cluster_plot_width"), value = 0.2, min = 0.1, max = 0.5, step = 0.05),
+                     tt("cluster_plot_width", "聚类图的宽度，范围 0.1-0.5", "Width of clustering plot, range 0.1-0.5")),
+              column(2, shiny::textInput(ns("facet_color"), tr("分面色 (facet_color)", "facet_color"), value = "grey95"),
+                     tt("facet_color", "分面背景颜色，用于分隔不同分面区域", "Facet background color, used to separate different facet regions")),
+              column(2, shiny::numericInput(ns("strip_text"), tr("分面字大 (strip_text)", "strip_text"), value = 11, min = 8, max = 16),
+                     tt("strip_text", "分面标签文字大小，影响分面标题的显示", "Facet label text size, affects facet title display")),
+              column(2, shinyWidgets::materialSwitch(ns("xtext_keep"), tr("X字 (xtext_keep)", "xtext_keep"), value = TRUE, status = "info"),
+                     tt("xtext_keep", "是否保留 X 轴文字标签", "Whether to keep X-axis text labels"))
             ),
             fluidRow(
-              column(2, shinyWidgets::materialSwitch(ns("xtitle_keep"), tr("X标题 (xtitle_keep)", "xtitle_keep"), value = TRUE, status = "info")),
-              column(2, shiny::numericInput(ns("xtext_angle"), tr("X字角度 (xtext_angle)", "xtext_angle"), value = 0, min = 0, max = 90, step = 15)),
-              column(2, shiny::numericInput(ns("xtext_size"), tr("X字大小 (xtext_size)", "xtext_size"), value = 10, min = 8, max = 16)),
-              column(2, shiny::numericInput(ns("ytitle_size"), tr("Y标题大小 (ytitle_size)", "ytitle_size"), value = 17, min = 10, max = 24)),
-              column(2, shinyWidgets::materialSwitch(ns("legend_text_italic"), tr("图例斜体 (legend_text_italic)", "legend_text_italic"), value = FALSE, status = "warning")),
-              column(2, shinyWidgets::materialSwitch(ns("ggnested"), tr("ggnested嵌套 (ggnested)", "ggnested"), value = FALSE, status = "danger"))
+              column(2, shinyWidgets::materialSwitch(ns("xtitle_keep"), tr("X标题 (xtitle_keep)", "xtitle_keep"), value = TRUE, status = "info"),
+                     tt("xtitle_keep", "是否保留 X 轴标题", "Whether to keep X-axis title")),
+              column(2, shiny::numericInput(ns("xtext_angle"), tr("X字角度 (xtext_angle)", "xtext_angle"), value = 0, min = 0, max = 90, step = 15),
+                     tt("xtext_angle", "X 轴文字旋转角度（0-90），用于避免文字重叠", "X-axis text rotation angle (0-90), used to avoid text overlap")),
+              column(2, shiny::numericInput(ns("xtext_size"), tr("X字大小 (xtext_size)", "xtext_size"), value = 10, min = 8, max = 16),
+                     tt("xtext_size", "X 轴文字大小，范围 8-16", "X-axis text size, range 8-16")),
+              column(2, shiny::numericInput(ns("ytitle_size"), tr("Y标题大小 (ytitle_size)", "ytitle_size"), value = 17, min = 10, max = 24),
+                     tt("ytitle_size", "Y 轴标题大小，范围 10-24", "Y-axis title size, range 10-24")),
+              column(2, shinyWidgets::materialSwitch(ns("legend_text_italic"), tr("图例斜体 (legend_text_italic)", "legend_text_italic"), value = FALSE, status = "warning"),
+                     tt("legend_text_italic", "是否将图例文字设置为斜体", "Whether to set legend text to italic")),
+              column(2, shinyWidgets::materialSwitch(ns("ggnested"), tr("ggnested嵌套 (ggnested)", "ggnested"), value = FALSE, status = "danger"),
+                     tt("ggnested", "是否使用 ggnested 嵌套绘图模式", "Whether to use ggnested nested plotting mode"))
             ),
             fluidRow(
-              column(2, shinyWidgets::materialSwitch(ns("high_level_add_other"), tr("高层增加Others (high_level_add_other)", "high_level_add_other"), value = FALSE, status = "info"))
+              column(2, shinyWidgets::materialSwitch(ns("high_level_add_other"), tr("高层增加Others (high_level_add_other)", "high_level_add_other"), value = FALSE, status = "info"),
+                     tt("high_level_add_other", "在更高层级是否增加 Others 组", "Whether to add Others group at higher level"))
             )
           ),
           shiny::conditionalPanel(condition = "input.plot_type == 'heatmap'", ns = ns,
             h4(tr("热图参数", "Heatmap Parameters")),
             fluidRow(
-              column(2, shinyWidgets::materialSwitch(ns("withmargin"), tr("边框 (withmargin)", "withmargin"), value = TRUE, status = "info")),
-              column(2, shinyWidgets::materialSwitch(ns("plot_numbers"), tr("显示数值 (plot_numbers)", "plot_numbers"), value = FALSE, status = "warning")),
-              column(2, shiny::numericInput(ns("plot_text_size"), tr("数值字大 (plot_text_size)", "plot_text_size"), value = 4, min = 2, max = 10)),
+              column(2, shinyWidgets::materialSwitch(ns("withmargin"), tr("边框 (withmargin)", "withmargin"), value = TRUE, status = "info"),
+                     tt("withmargin", "是否在热图瓷砖周围保留边距", "Whether to keep margins around heatmap tiles")),
+              column(2, shinyWidgets::materialSwitch(ns("plot_numbers"), tr("显示数值 (plot_numbers)", "plot_numbers"), value = FALSE, status = "warning"),
+                     tt("plot_numbers", "是否在热图中显示数值标签", "Whether to display numerical labels in heatmap")),
+              column(2, shiny::numericInput(ns("plot_text_size"), tr("数值字大 (plot_text_size)", "plot_text_size"), value = 4, min = 2, max = 10),
+                     tt("plot_text_size", "热图数值文字大小，范围 2-10", "Text size for numerical values in heatmap, range 2-10")),
               column(2, shiny::selectInput(ns("plot_colorscale"), tr("色度 (plot_colorscale)", "plot_colorscale"),
-                choices = c("log10", "identity", "sqrt"), selected = "log10")),
-              column(2, shiny::numericInput(ns("min_abundance"), tr("最小丰度 (min_abundance)", "min_abundance"), value = 0.01, min = 0, max = 100, step = 0.01)),
-              column(2, shiny::numericInput(ns("max_abundance_hm"), tr("最大丰度 (0=自动)", "max_abundance (0=auto)"), value = 0, min = 0, max = 100, step = 0.01))
+                choices = c("log10", "identity", "sqrt"), selected = "log10"),
+                     tt("plot_colorscale", "色阶转换方式：log10（对数）、identity（线性）、sqrt（平方根）", "Color scale transformation: log10, identity (linear), sqrt")),
+              column(2, shiny::numericInput(ns("min_abundance"), tr("最小丰度 (min_abundance)", "min_abundance"), value = 0.01, min = 0, max = 100, step = 0.01),
+                     tt("min_abundance", "热图显示的最小丰度阈值，低于此值的 taxa 将被过滤", "Minimum abundance threshold for heatmap, taxa below this will be filtered")),
+              column(2, shiny::numericInput(ns("max_abundance_hm"), tr("最大丰度 (0=自动)", "max_abundance (0=auto)"), value = 0, min = 0, max = 100, step = 0.01),
+                     tt("max_abundance_hm", "热图显示的最大丰度阈值，设为 0 表示自动", "Maximum abundance threshold for heatmap, set 0 for auto"))
             ),
             fluidRow(
-              column(2, shiny::actionButton(ns("order_x_btn_hm"), tr("▬ X排序", "▬ X Order"), class = "btn-outline-secondary", width = "100%")),
-              column(2, shiny::actionButton(ns("facet_btn_hm"), tr("▬ 分面 Facet", "▬ Facet"), class = "btn-outline-secondary", width = "100%")),
+              column(2, shiny::actionButton(ns("order_x_btn_hm"), tr("▬ X排序", "▬ X Order"), class = "btn-outline-secondary", width = "100%"),
+                     tt("order_x_btn_hm", "设置热图 X 轴样本排序顺序", "Set heatmap X-axis sample order")),
+              column(2, shiny::actionButton(ns("facet_btn_hm"), tr("▬ 分面 Facet", "▬ Facet"), class = "btn-outline-secondary", width = "100%"),
+                     tt("facet_btn_hm", "设置热图分面列进行分面绘图", "Set heatmap facet column for faceted plotting")),
               column(5, uiOutput(ns("facet_display_hm"))),
-              column(3, shiny::selectInput(ns("x_axis_name_hm"), tr("X轴名称 (x_axis_name)", "x_axis_name"), choices = character(0)))
+              column(3, shiny::selectInput(ns("x_axis_name_hm"), tr("X轴名称 (x_axis_name)", "x_axis_name"), choices = character(0)),
+                     tt("x_axis_name_hm", "热图 X 轴名称列，替代默认 taxa 名", "Heatmap X-axis name column, replaces default taxa name"))
             ),
             fluidRow(
               column(2, shiny::selectInput(ns("facet_switch"), tr("分面位 (facet_switch)", "facet_switch"),
-                choices = c("y", "x", "both"), selected = "y")),
-              column(2, shiny::textInput(ns("margincolor"), tr("边色 (margincolor)", "margincolor"), value = "white")),
-              column(2, shiny::textInput(ns("legend_title"), tr("图例标题 (legend_title)", "legend_title"), value = "% Relative\nAbundance")),
-              column(2, shiny::numericInput(ns("strip_text_hm"), tr("分面字大 (strip_text)", "strip_text"), value = 11, min = 8, max = 16)),
-              column(2, shinyWidgets::materialSwitch(ns("grid_clean"), tr("清网 (grid_clean)", "grid_clean"), value = TRUE, status = "success")),
-              column(2, shiny::textInput(ns("plot_breaks_hm"), tr("图例断点 (plot_breaks)", "plot_breaks"), value = "0.01, 0.1, 1, 10"))
+                choices = c("y", "x", "both"), selected = "y"),
+                     tt("facet_switch", "分面标签的位置：y（垂直方向）、x（水平方向）、both（双向）", "Facet label position: y (vertical), x (horizontal), both (bidirectional)")),
+              column(2, shiny::textInput(ns("margincolor"), tr("边色 (margincolor)", "margincolor"), value = "white"),
+                     tt("margincolor", "热图边距的颜色，通常设置为白色或浅灰色", "Margin color for heatmap, usually set to white or light gray")),
+              column(2, shiny::textInput(ns("legend_title"), tr("图例标题 (legend_title)", "legend_title"), value = "% Relative\nAbundance"),
+                     tt("legend_title", "图例标题文本", "Legend title text")),
+              column(2, shiny::numericInput(ns("strip_text_hm"), tr("分面字大 (strip_text)", "strip_text"), value = 11, min = 8, max = 16),
+                     tt("strip_text_hm", "热图分面标签文字大小", "Facet label text size for heatmap")),
+              column(2, shinyWidgets::materialSwitch(ns("grid_clean"), tr("清网 (grid_clean)", "grid_clean"), value = TRUE, status = "success"),
+                     tt("grid_clean", "是否清除背景网格线，使图形更简洁", "Whether to remove background grid lines for a cleaner look")),
+              column(2, shiny::textInput(ns("plot_breaks_hm"), tr("图例断点 (plot_breaks)", "plot_breaks"), value = "0.01, 0.1, 1, 10"),
+                     tt("plot_breaks_hm", "图例刻度断点，逗号分隔的数值列表", "Legend break values, comma-separated list of numbers"))
             ),
             fluidRow(
-              column(2, shinyWidgets::materialSwitch(ns("xtitle_keep_hm"), tr("X标题 (xtitle_keep)", "xtitle_keep"), value = TRUE, status = "info")),
-              column(2, shinyWidgets::materialSwitch(ns("xtext_keep_hm"), tr("X字 (xtext_keep)", "xtext_keep"), value = TRUE, status = "info")),
-              column(2, shiny::numericInput(ns("xtext_angle_hm"), tr("X字角度 (xtext_angle)", "xtext_angle"), value = 0, min = 0, max = 90, step = 15)),
-              column(2, shiny::numericInput(ns("xtext_size_hm"), tr("X字大小 (xtext_size)", "xtext_size"), value = 10, min = 8, max = 16)),
-              column(2, shiny::numericInput(ns("ytext_size_hm"), tr("Y字大小 (ytext_size)", "ytext_size"), value = 11, min = 8, max = 16)),
-              column(2, shinyWidgets::materialSwitch(ns("pheatmap"), tr("pheatmap包 (pheatmap)", "pheatmap"), value = FALSE, status = "danger"))
+              column(2, shinyWidgets::materialSwitch(ns("xtitle_keep_hm"), tr("X标题 (xtitle_keep)", "xtitle_keep"), value = TRUE, status = "info"),
+                     tt("xtitle_keep_hm", "热图是否保留 X 轴标题", "Whether to keep X-axis title in heatmap")),
+              column(2, shinyWidgets::materialSwitch(ns("xtext_keep_hm"), tr("X字 (xtext_keep)", "xtext_keep"), value = TRUE, status = "info"),
+                     tt("xtext_keep_hm", "热图是否保留 X 轴文字", "Whether to keep X-axis text in heatmap")),
+              column(2, shiny::numericInput(ns("xtext_angle_hm"), tr("X字角度 (xtext_angle)", "xtext_angle"), value = 0, min = 0, max = 90, step = 15),
+                     tt("xtext_angle_hm", "热图 X 轴文字旋转角度", "X-axis text rotation angle for heatmap")),
+              column(2, shiny::numericInput(ns("xtext_size_hm"), tr("X字大小 (xtext_size)", "xtext_size"), value = 10, min = 8, max = 16),
+                     tt("xtext_size_hm", "热图 X 轴文字大小", "X-axis text size for heatmap")),
+              column(2, shiny::numericInput(ns("ytext_size_hm"), tr("Y字大小 (ytext_size)", "ytext_size"), value = 11, min = 8, max = 16),
+                     tt("ytext_size_hm", "热图 Y 轴文字大小", "Y-axis text size for heatmap")),
+              column(2, shinyWidgets::materialSwitch(ns("pheatmap"), tr("pheatmap包 (pheatmap)", "pheatmap"), value = FALSE, status = "danger"),
+                     tt("pheatmap", "是否使用 pheatmap 包绘制热图（vs ggplot2）", "Whether to use pheatmap package for heatmap plotting (vs ggplot2)"))
             )
           ),
           shiny::conditionalPanel(condition = "input.plot_type == 'pie'", ns = ns,
             h4(tr("饼图参数", "Pie Chart Parameters")),
             fluidRow(
               column(2, shiny::selectInput(ns("color_theme_pie"), tr("颜色 (color_theme)", "color_theme"),
-                choices = c("Dark2", "Set1", "Set2", "Set3", "Paired", "Spectral"), selected = "Dark2")),
-              column(2, shiny::numericInput(ns("facet_nrow_pie"), tr("行数 (facet_nrow)", "facet_nrow"), value = 1, min = 1, max = 10)),
-              column(2, shiny::numericInput(ns("strip_text_pie"), tr("分面字大 (strip_text)", "strip_text"), value = 11, min = 8, max = 16)),
-              column(2, shinyWidgets::materialSwitch(ns("add_label_pie"), tr("百分比标签 (add_label)", "add_label"), value = FALSE, status = "info")),
-              column(2, shinyWidgets::materialSwitch(ns("legend_text_italic_pie"), tr("图例斜体 (legend_text_italic)", "legend_text_italic"), value = FALSE, status = "warning"))
+                choices = c("Dark2", "Set1", "Set2", "Set3", "Paired", "Spectral"), selected = "Dark2"),
+                     tt("color_theme_pie", "饼图颜色主题", "Color theme for pie chart")),
+              column(2, shiny::numericInput(ns("facet_nrow_pie"), tr("行数 (facet_nrow)", "facet_nrow"), value = 1, min = 1, max = 10),
+                     tt("facet_nrow_pie", "饼图分面的行数，用于排列多个饼图", "Number of facet rows for pie charts, used to arrange multiple pie charts")),
+              column(2, shiny::numericInput(ns("strip_text_pie"), tr("分面字大 (strip_text)", "strip_text"), value = 11, min = 8, max = 16),
+                     tt("strip_text_pie", "饼图分面标签文字大小", "Facet label text size for pie chart")),
+              column(2, shinyWidgets::materialSwitch(ns("add_label_pie"), tr("百分比标签 (add_label)", "add_label"), value = FALSE, status = "info"),
+                     tt("add_label_pie", "是否在饼图上显示百分比标签", "Whether to display percentage labels on pie chart")),
+              column(2, shinyWidgets::materialSwitch(ns("legend_text_italic_pie"), tr("图例斜体 (legend_text_italic)", "legend_text_italic"), value = FALSE, status = "warning"),
+                     tt("legend_text_italic_pie", "是否将饼图图例文字设置为斜体", "Whether to set pie chart legend text to italic"))
             )
           ),
           shiny::conditionalPanel(condition = "input.plot_type == 'box'", ns = ns,
             h4(tr("箱形图参数", "Box Plot Parameters")),
             fluidRow(
               column(2, shiny::selectInput(ns("color_theme_box"), tr("颜色 (color_theme)", "color_theme"),
-                choices = c("Dark2", "Set1", "Set2", "Set3", "Paired", "Spectral", "Viridis"), selected = "Dark2")),
+                choices = c("Dark2", "Set1", "Set2", "Set3", "Paired", "Spectral", "Viridis"), selected = "Dark2"),
+                     tt("color_theme_box", "箱形图颜色主题", "Color theme for box plot")),
               column(2, shiny::selectInput(ns("group_col_box"), tr("分组 (group)", "group"),
-                choices = character(0), selected = "")),
-              column(2, shinyWidgets::materialSwitch(ns("show_point_box"), tr("显示点 (show_point)", "show_point"), value = FALSE, status = "info")),
-              column(2, shiny::textInput(ns("point_color_box"), tr("点颜色 (point_color)", "point_color"), value = "black")),
-              column(2, shiny::numericInput(ns("point_size_box"), tr("点大小 (point_size)", "point_size"), value = 3, min = 1, max = 10)),
-              column(2, shiny::numericInput(ns("point_alpha_box"), tr("点透明度 (point_alpha)", "point_alpha"), value = 0.3, min = 0, max = 1, step = 0.1))
+                choices = character(0), selected = ""),
+                     tt("group_col_box", "箱形图分组列，用于按组显示箱线图", "Group column for box plot, used to display box plots by group")),
+              column(2, shinyWidgets::materialSwitch(ns("show_point_box"), tr("显示点 (show_point)", "show_point"), value = FALSE, status = "info"),
+                     tt("show_point_box", "是否在箱形图上显示数据点", "Whether to show data points on box plot")),
+              column(2, shiny::textInput(ns("point_color_box"), tr("点颜色 (point_color)", "point_color"), value = "black"),
+                     tt("point_color_box", "数据点的颜色", "Color of data points")),
+              column(2, shiny::numericInput(ns("point_size_box"), tr("点大小 (point_size)", "point_size"), value = 3, min = 1, max = 10),
+                     tt("point_size_box", "数据点的大小", "Size of data points")),
+              column(2, shiny::numericInput(ns("point_alpha_box"), tr("点透明度 (point_alpha)", "point_alpha"), value = 0.3, min = 0, max = 1, step = 0.1),
+                     tt("point_alpha_box", "数据点的透明度（0-1）", "Transparency of data points (0-1)"))
             ),
             fluidRow(
-              column(2, shinyWidgets::materialSwitch(ns("plot_flip_box"), tr("翻转 (plot_flip)", "plot_flip"), value = FALSE, status = "success")),
-              column(2, shinyWidgets::materialSwitch(ns("boxfill_box"), tr("填充 (boxfill)", "boxfill"), value = TRUE, status = "info")),
-              column(2, shiny::textInput(ns("middlecolor_box"), tr("中线颜色 (middlecolor)", "middlecolor"), value = "grey95")),
-              column(2, shiny::numericInput(ns("middlesize_box"), tr("中线大小 (middlesize)", "middlesize"), value = 1, min = 0.5, max = 3)),
-              column(2, shiny::numericInput(ns("xtext_angle_box"), tr("X字角度 (xtext_angle)", "xtext_angle"), value = 0, min = 0, max = 90, step = 15)),
-              column(2, shiny::numericInput(ns("xtext_size_box"), tr("X字大小 (xtext_size)", "xtext_size"), value = 10, min = 8, max = 16))
+              column(2, shinyWidgets::materialSwitch(ns("plot_flip_box"), tr("翻转 (plot_flip)", "plot_flip"), value = FALSE, status = "success"),
+                     tt("plot_flip_box", "是否翻转箱形图坐标系", "Whether to flip box plot coordinates")),
+              column(2, shinyWidgets::materialSwitch(ns("boxfill_box"), tr("填充 (boxfill)", "boxfill"), value = TRUE, status = "info"),
+                     tt("boxfill_box", "是否填充箱形图的盒子部分", "Whether to fill the box part of box plot")),
+              column(2, shiny::textInput(ns("middlecolor_box"), tr("中线颜色 (middlecolor)", "middlecolor"), value = "grey95"),
+                     tt("middlecolor_box", "箱形图中位线的颜色", "Color of median line in box plot")),
+              column(2, shiny::numericInput(ns("middlesize_box"), tr("中线大小 (middlesize)", "middlesize"), value = 1, min = 0.5, max = 3),
+                     tt("middlesize_box", "箱形图中位线的大小（粗细）", "Size (thickness) of median line in box plot")),
+              column(2, shiny::numericInput(ns("xtext_angle_box"), tr("X字角度 (xtext_angle)", "xtext_angle"), value = 0, min = 0, max = 90, step = 15),
+                     tt("xtext_angle_box", "箱形图 X 轴文字旋转角度", "X-axis text rotation angle for box plot")),
+              column(2, shiny::numericInput(ns("xtext_size_box"), tr("X字大小 (xtext_size)", "xtext_size"), value = 10, min = 8, max = 16),
+                     tt("xtext_size_box", "箱形图 X 轴文字大小", "X-axis text size for box plot"))
             ),
             fluidRow(
-              column(2, shiny::numericInput(ns("ytitle_size_box"), tr("Y标题大小 (ytitle_size)", "ytitle_size"), value = 17, min = 10, max = 24))
+              column(2, shiny::numericInput(ns("ytitle_size_box"), tr("Y标题大小 (ytitle_size)", "ytitle_size"), value = 17, min = 10, max = 24),
+                     tt("ytitle_size_box", "箱形图 Y 轴标题大小", "Y-axis title size for box plot"))
             )
           ),
           shiny::conditionalPanel(condition = "input.plot_type == 'line'", ns = ns,
             h4(tr("线图参数", "Line Plot Parameters")),
             fluidRow(
               column(2, shiny::selectInput(ns("color_theme_line"), tr("颜色 (color_theme)", "color_theme"),
-                choices = c("Dark2", "Set1", "Set2", "Set3", "Paired", "Spectral", "Viridis"), selected = "Dark2")),
-              column(2, shinyWidgets::materialSwitch(ns("plot_SE_line"), tr("显示标准误 (plot_SE)", "plot_SE"), value = TRUE, status = "info")),
-              column(2, shiny::numericInput(ns("errorbar_size_line"), tr("误差线大小 (errorbar_size)", "errorbar_size"), value = 1, min = 0.5, max = 3)),
-              column(2, shiny::numericInput(ns("errorbar_width_line"), tr("误差线宽度 (errorbar_width)", "errorbar_width"), value = 0.1, min = 0.05, max = 0.5)),
-              column(2, shiny::numericInput(ns("point_size_line"), tr("点大小 (point_size)", "point_size"), value = 3, min = 1, max = 10)),
-              column(2, shiny::numericInput(ns("point_alpha_line"), tr("点透明度 (point_alpha)", "point_alpha"), value = 0.8, min = 0, max = 1, step = 0.1))
+                choices = c("Dark2", "Set1", "Set2", "Set3", "Paired", "Spectral", "Viridis"), selected = "Dark2"),
+                     tt("color_theme_line", "线图颜色主题", "Color theme for line plot")),
+              column(2, shinyWidgets::materialSwitch(ns("plot_SE_line"), tr("显示标准误 (plot_SE)", "plot_SE"), value = TRUE, status = "info"),
+                     tt("plot_SE_line", "是否显示标准误（mean±SE）误差线", "Whether to show standard error (mean±SE) error bars")),
+              column(2, shiny::numericInput(ns("errorbar_size_line"), tr("误差线大小 (errorbar_size)", "errorbar_size"), value = 1, min = 0.5, max = 3),
+                     tt("errorbar_size_line", "误差线的大小", "Size of error bars")),
+              column(2, shiny::numericInput(ns("errorbar_width_line"), tr("误差线宽度 (errorbar_width)", "errorbar_width"), value = 0.1, min = 0.05, max = 0.5),
+                     tt("errorbar_width_line", "误差线的宽度", "Width of error bars")),
+              column(2, shiny::numericInput(ns("point_size_line"), tr("点大小 (point_size)", "point_size"), value = 3, min = 1, max = 10),
+                     tt("point_size_line", "数据点的大小", "Size of data points")),
+              column(2, shiny::numericInput(ns("point_alpha_line"), tr("点透明度 (point_alpha)", "point_alpha"), value = 0.8, min = 0, max = 1, step = 0.1),
+                     tt("point_alpha_line", "数据点的透明度", "Transparency of data points"))
             ),
             fluidRow(
-              column(2, shiny::numericInput(ns("line_size_line"), tr("线大小 (line_size)", "line_size"), value = 0.8, min = 0.5, max = 3)),
-              column(2, shiny::numericInput(ns("line_alpha_line"), tr("线透明度 (line_alpha)", "line_alpha"), value = 0.8, min = 0, max = 1, step = 0.1)),
-              column(2, shiny::numericInput(ns("line_type_line"), tr("线类型 (line_type)", "line_type"), value = 1, min = 1, max = 6)),
-              column(2, shiny::numericInput(ns("xtext_angle_line"), tr("X字角度 (xtext_angle)", "xtext_angle"), value = 0, min = 0, max = 90, step = 15)),
-              column(2, shiny::numericInput(ns("xtext_size_line"), tr("X字大小 (xtext_size)", "xtext_size"), value = 10, min = 8, max = 16)),
-              column(2, shiny::numericInput(ns("ytitle_size_line"), tr("Y标题大小 (ytitle_size)", "ytitle_size"), value = 17, min = 10, max = 24))
+              column(2, shiny::numericInput(ns("line_size_line"), tr("线大小 (line_size)", "line_size"), value = 0.8, min = 0.5, max = 3),
+                     tt("line_size_line", "线条的粗细", "Thickness of lines")),
+              column(2, shiny::numericInput(ns("line_alpha_line"), tr("线透明度 (line_alpha)", "line_alpha"), value = 0.8, min = 0, max = 1, step = 0.1),
+                     tt("line_alpha_line", "线条的透明度", "Transparency of lines")),
+              column(2, shiny::numericInput(ns("line_type_line"), tr("线类型 (line_type)", "line_type"), value = 1, min = 1, max = 6),
+                     tt("line_type_line", "线条类型（1-6），对应实线、虚线等不同样式", "Line type (1-6), corresponds to solid, dashed and other styles")),
+              column(2, shiny::numericInput(ns("xtext_angle_line"), tr("X字角度 (xtext_angle)", "xtext_angle"), value = 0, min = 0, max = 90, step = 15),
+                     tt("xtext_angle_line", "线图 X 轴文字旋转角度", "X-axis text rotation angle for line plot")),
+              column(2, shiny::numericInput(ns("xtext_size_line"), tr("X字大小 (xtext_size)", "xtext_size"), value = 10, min = 8, max = 16),
+                     tt("xtext_size_line", "线图 X 轴文字大小", "X-axis text size for line plot")),
+              column(2, shiny::numericInput(ns("ytitle_size_line"), tr("Y标题大小 (ytitle_size)", "ytitle_size"), value = 17, min = 10, max = 24),
+                     tt("ytitle_size_line", "线图 Y 轴标题大小", "Y-axis title size for line plot"))
             )
           ),
           shiny::conditionalPanel(condition = "input.plot_type == 'donut'", ns = ns,
             h4(tr("甜甜圈图参数", "Donut Chart Parameters")),
             fluidRow(
               column(2, shiny::selectInput(ns("color_theme_donut"), tr("颜色 (color_theme)", "color_theme"),
-                choices = c("Dark2", "Set1", "Set2", "Set3", "Paired", "Spectral", "Viridis"), selected = "Dark2")),
-              column(2, shinyWidgets::materialSwitch(ns("label_donut"), tr("显示标签 (label)", "label"), value = TRUE, status = "info")),
-              column(2, shiny::numericInput(ns("facet_nrow_donut"), tr("行数 (facet_nrow)", "facet_nrow"), value = 1, min = 1, max = 10)),
-              column(2, shinyWidgets::materialSwitch(ns("legend_text_italic_donut"), tr("图例斜体 (legend_text_italic)", "legend_text_italic"), value = FALSE, status = "warning"))
+                choices = c("Dark2", "Set1", "Set2", "Set3", "Paired", "Spectral", "Viridis"), selected = "Dark2"),
+                     tt("color_theme_donut", "甜甜圈图颜色主题", "Color theme for donut chart")),
+              column(2, shinyWidgets::materialSwitch(ns("label_donut"), tr("显示标签 (label)", "label"), value = TRUE, status = "info"),
+                     tt("label_donut", "是否显示甜甜圈图标签", "Whether to display donut chart labels")),
+              column(2, shiny::numericInput(ns("facet_nrow_donut"), tr("行数 (facet_nrow)", "facet_nrow"), value = 1, min = 1, max = 10),
+                     tt("facet_nrow_donut", "甜甜圈图分面的行数", "Number of facet rows for donut charts")),
+              column(2, shinyWidgets::materialSwitch(ns("legend_text_italic_donut"), tr("图例斜体 (legend_text_italic)", "legend_text_italic"), value = FALSE, status = "warning"),
+                     tt("legend_text_italic_donut", "是否将甜甜圈图图例文字设置为斜体", "Whether to set donut chart legend text to italic"))
             )
           ),
           hr(),
