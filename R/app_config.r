@@ -25,7 +25,7 @@ app_config <- list(
   # Alpha diversity measures
   alpha_measures = c(
     "Observed", "Chao1", "ACE", "Shannon", "Simpson",
-    "Pielou_evenness", "InvSimpson", "Fisher", "NPShannon", "Coverage"
+    "Pielou", "InvSimpson", "Fisher", "Coverage"
   ),
 
   # Beta diversity measures
