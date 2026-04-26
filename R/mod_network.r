@@ -20,43 +20,89 @@ mod_network_ui <- function(id, lang = "zh") {
         bs4Dash::box(
           title = tr("\U0001f4cb 参数设置", "\U0001f4cb Parameters"),
           status = "primary", solidHeader = TRUE, width = NULL, collapsible = FALSE,
-          h4(tr("基本参数", "Basic Parameters")),
+          h4(tr("网络构建", "Network Construction")),
           fluidRow(
-            column(2, shiny::selectInput(ns("net_cor_method"), tr("cor_method (相关方法)", "cor_method"),
-              choices = c("spearman", "pearson", "bray", "sparcc", "bicor", "cclasso", "ccrepe", "NULL"),
-              selected = "spearman")),
-            column(2, shiny::selectInput(ns("net_taxa_level"), tr("taxa_level (分类水平)", "taxa_level"),
-              choices = c("Genus", "OTU", "Phylum", "Class", "Order", "Family"),
-              selected = "Genus")),
-            column(2, shiny::numericInput(ns("net_filter_thres"), tr("filter_thres (相对丰度阈值)", "filter_thres (RA threshold)"),
-              value = 0, min = 0, max = 1, step = 0.0001)),
-            column(2, shinyWidgets::pickerInput(ns("net_env_cols"), tr("env_cols (环境因子)", "env_cols"),
-              choices = character(0), selected = character(0), multiple = TRUE,
-              options = shinyWidgets::pickerOptions(actionsBox = TRUE, liveSearch = TRUE))),
-            column(2, shiny::numericInput(ns("net_nThreads"), "nThreads", value = 1, min = 1, max = 16)),
-            column(2)
+            column(12, shiny::radioButtons(ns("net_network_method"), tr("网络方法", "Network Method"),
+              choices = setNames(c("spearman", "sparcc", "SpiecEasi", "FlashWeave", "beemStatic"),
+                                 c("spearman", "sparcc", "SpiecEasi", "FlashWeave", "beemStatic")),
+              selected = "spearman", inline = TRUE))
           ),
+          hr(),
+          h5(tr("通用参数", "General Parameters")),
           fluidRow(
-            column(3, shinyWidgets::materialSwitch(ns("net_use_WGCNA"), "use_WGCNA_pearson_spearman", value = FALSE, status = "info")),
-            column(3, shinyWidgets::materialSwitch(ns("net_use_NetCoMi"), "use_NetCoMi_pearson_spearman", value = FALSE, status = "warning")),
-            column(3, shinyWidgets::materialSwitch(ns("net_use_sparcc_method"), "use_sparcc_method = SpiecEasi", value = FALSE, status = "success")),
-            column(3)
+            column(2, shiny::selectInput(ns("net_taxa_level"), tr("taxa_level", "taxa_level"),
+              choices = c("OTU", "Genus", "Phylum", "Class", "Order", "Family"),
+              selected = "OTU")),
+            column(2, shiny::numericInput(ns("net_filter_thres"), tr("filter_thres", "filter_thres"),
+              value = 0, min = 0, max = 1, step = 0.0001)),
+            column(2, shinyWidgets::materialSwitch(ns("net_add_taxa_name"), "add_taxa_name", value = TRUE, status = "info")),
+            column(2, shiny::selectInput(ns("net_taxa_name_level"), "add_taxa_name_level",
+              choices = c("Phylum", "Class", "Order", "Family", "Genus"), selected = "Phylum")),
+            column(2, shinyWidgets::materialSwitch(ns("net_delete_unlinked"), "delete_unlinked_nodes", value = TRUE, status = "success"))
+          ),
+          hr(),
+          shiny::conditionalPanel(condition = "input.net_network_method == 'spearman' || input.net_network_method == 'sparcc'", ns = ns,
+            h5(tr("COR 参数", "COR Parameters")),
+            fluidRow(
+              column(2, shiny::numericInput(ns("net_cor_cut"), tr("COR_cut", "COR_cut"),
+                value = 0.6, min = 0, max = 1, step = 0.05)),
+              column(2, shiny::numericInput(ns("net_cor_p_thres"), tr("COR_p_thres", "COR_p_thres"),
+                value = 0.01, min = 0, max = 0.1, step = 0.001)),
+              column(2, shiny::selectInput(ns("net_cor_p_adjust"), "COR_p_adjust",
+                choices = c("fdr", "holm", "bonferroni", "none", "BH", "BY"), selected = "fdr")),
+              column(2, shinyWidgets::materialSwitch(ns("net_cor_return_padjust"), "COR_return_padjust", value = FALSE, status = "info")),
+              column(2, shinyWidgets::materialSwitch(ns("net_cor_weight"), tr("COR_weight", "COR_weight"), value = TRUE, status = "primary"))
+            ),
+            fluidRow(
+              column(3, shinyWidgets::materialSwitch(ns("net_cor_optimization"), tr("COR_optimization (RMT)", "COR_optimization (RMT)"), value = FALSE, status = "warning")),
+              column(3, shiny::numericInput(ns("net_cor_opt_low"), "COR_optimization_low", value = 0.01, min = 0, max = 1, step = 0.01)),
+              column(3, shiny::numericInput(ns("net_cor_opt_high"), "COR_optimization_high", value = 0.8, min = 0, max = 1, step = 0.01)),
+              column(3, shiny::numericInput(ns("net_cor_opt_seq"), "COR_optimization_seq", value = 0.01, min = 0.001, max = 0.1, step = 0.001))
+            )
+          ),
+          shiny::conditionalPanel(condition = "input.net_network_method == 'SpiecEasi'", ns = ns,
+            h5(tr("SpiecEasi 参数", "SpiecEasi Parameters")),
+            fluidRow(
+              column(3, shiny::selectInput(ns("net_spieceasi_method"), tr("method", "method"),
+                choices = c("mb", "glasso"), selected = "mb"))
+            )
+          ),
+          shiny::conditionalPanel(condition = "input.net_network_method == 'FlashWeave'", ns = ns,
+            h5(tr("FlashWeave 参数", "FlashWeave Parameters")),
+            fluidRow(
+              column(2, shiny::numericInput(ns("net_flash_alpha"), "alpha", value = 0.01, min = 0, max = 1, step = 0.001)),
+              column(2, shinyWidgets::materialSwitch(ns("net_flash_sensitive"), "sensitive", value = TRUE, status = "info")),
+              column(2, shinyWidgets::materialSwitch(ns("net_flash_heterogeneous"), "heterogeneous", value = TRUE, status = "warning"))
+            )
+          ),
+          shiny::conditionalPanel(condition = "input.net_network_method == 'beemStatic'", ns = ns,
+            h5(tr("beemStatic 参数", "beemStatic Parameters")),
+            fluidRow(
+              column(4, p(tr("beemStatic 参数待确认", "beemStatic parameters to be confirmed")))
+            )
+          ),
+
+          hr(),
+          fluidRow(
+            column(3, shiny::actionButton(ns("run_network"), tr("\U0001f4ca 构建网络", "\U0001f4ca Build Network"),
+              icon = icon("play"), class = "btn-success", width = "100%")),
+            column(9)
           ),
           hr(),
           h4(tr("分析类型", "Analysis Type")),
           fluidRow(
             column(12, shiny::radioButtons(ns("net_analysis_type"), tr("分析类型", "Analysis Type"),
-              choices = setNames(c("cor", "spieceasi", "gcoda", "roles", "sumlinks", "attr"),
-                                 c(tr("COR网络", "COR Network"), tr("SpiecEasi网络", "SpiecEasi Network"),
-                                   tr("gcoda网络", "gcoda Network"), tr("节点角色分析", "Node Roles"),
-                                   tr("链接分析", "Link Analysis"), tr("网络属性", "Network Attributes"))),
-              selected = "cor", inline = TRUE))
+              choices = setNames(c("roles", "sumlinks", "attr", "plot_network"),
+                                 c(tr("节点角色分析", "Node Roles"),
+                                   tr("链接分析", "Link Analysis"),
+                                   tr("网络属性", "Network Attributes"),
+                                   tr("网络图形", "Network Plot"))),
+              selected = "plot_network", inline = TRUE))
           ),
-          shiny::conditionalPanel(condition = "input.net_analysis_type == 'cor' || input.net_analysis_type == 'spieceasi' || input.net_analysis_type == 'gcoda'", ns = ns,
-            h4(paste0("cal_network ", tr("参数", "Parameters"))),
+
+          shiny::conditionalPanel(condition = "input.net_analysis_type == 'plot_network'", ns = ns,
+            h4(tr("网络图形参数", "Network Plot Parameters")),
             fluidRow(
-              column(3, shiny::selectInput(ns("net_network_method"), "network_method",
-                choices = c("COR", "SpiecEasi", "gcoda"), selected = "COR")),
               column(3, shiny::selectInput(ns("net_plot_method"), tr("plot_network method", "plot_network method"),
                 choices = c("igraph" = "igraph", "ggraph" = "ggraph", "networkD3" = "networkD3"),
                 selected = "igraph")),
@@ -77,32 +123,9 @@ mod_network_ui <- function(id, lang = "zh") {
                 choices = c("fr", "kk", "lgl", "graphopt", "drl", "mds"), selected = "fr")),
               column(2, shinyWidgets::materialSwitch(ns("net_d3_zoom"), "networkD3_zoom", value = TRUE, status = "info")),
               column(2, shinyWidgets::materialSwitch(ns("net_d3_legend"), "networkD3_node_legend", value = TRUE, status = "info"))
-            ),
-            fluidRow(
-              column(2, shiny::numericInput(ns("net_cor_cut"), tr("COR_cut (相关系数阈值)", "COR_cut (correlation threshold)"),
-                value = 0.6, min = 0, max = 1, step = 0.05)),
-              column(2, shiny::numericInput(ns("net_cor_p_thres"), tr("COR_p_thres (P值阈值)", "COR_p_thres (P-value threshold)"),
-                value = 0.01, min = 0, max = 0.1, step = 0.001)),
-              column(2, shiny::selectInput(ns("net_cor_p_adjust"), "COR_p_adjust",
-                choices = c("fdr", "holm", "bonferroni", "none", "BH", "BY"), selected = "fdr")),
-              column(2, shinyWidgets::materialSwitch(ns("net_cor_return_padjust"), "COR_return_padjust", value = FALSE, status = "info")),
-              column(2, shinyWidgets::materialSwitch(ns("net_cor_weight"), tr("COR_weight (使用相关系数作为边权重)", "COR_weight (use correlation as edge weight)"), value = TRUE, status = "primary"))
-            ),
-            fluidRow(
-              column(3, shinyWidgets::materialSwitch(ns("net_cor_optimization"), tr("COR_optimization (RMT优化)", "COR_optimization (RMT optimization)"), value = FALSE, status = "warning")),
-              column(3, shiny::numericInput(ns("net_cor_opt_low"), "COR_optimization_low", value = 0.01, min = 0, max = 1, step = 0.01)),
-              column(3, shiny::numericInput(ns("net_cor_opt_high"), "COR_optimization_high", value = 0.8, min = 0, max = 1, step = 0.01)),
-              column(3, shiny::numericInput(ns("net_cor_opt_seq"), "COR_optimization_seq", value = 0.01, min = 0.001, max = 0.1, step = 0.001))
-            ),
-            fluidRow(
-              column(3, shiny::selectInput(ns("net_spieceasi_method"), "SpiecEasi_method",
-                choices = c("mb", "glasso"), selected = "mb")),
-              column(3, shinyWidgets::materialSwitch(ns("net_add_taxa_name"), "add_taxa_name", value = TRUE, status = "info")),
-              column(3, shiny::selectInput(ns("net_taxa_name_level"), "add_taxa_name_level",
-                choices = c("Phylum", "Class", "Order", "Family", "Genus"), selected = "Phylum")),
-              column(3, shinyWidgets::materialSwitch(ns("net_delete_unlinked"), "delete_unlinked_nodes", value = TRUE, status = "success"))
             )
           ),
+
           shiny::conditionalPanel(condition = "input.net_analysis_type == 'roles'", ns = ns,
             h4(paste0("cal_module + plot_taxa_roles ", tr("参数", "Parameters"))),
             fluidRow(
@@ -155,8 +178,6 @@ mod_network_ui <- function(id, lang = "zh") {
           hr(),
           h4(tr("图片保存与下载", "Save & Download Plot")),
           fluidRow(
-            column(2, shiny::actionButton(ns("run_network"), tr("\U0001f4ca 构建网络", "\U0001f4ca Build Network"),
-              icon = icon("play"), class = "btn-primary", width = "100%")),
             column(2, shiny::selectInput(ns("net_image_format"), tr("格式", "Format"),
               choices = c("PNG" = "png", "PDF" = "pdf", "SVG" = "svg", "TIFF" = "tiff"), selected = "png")),
             column(1, shiny::numericInput(ns("net_save_width"), tr("宽 (width)", "Width"), value = 12, min = 4, max = 20)),
@@ -374,10 +395,19 @@ mod_network_server <- function(id, rv) {
     observe({
       if (!check_microtable(rv)) {
         updatePickerInput(session, "net_env_cols", choices = character(0), selected = character(0))
+        updateSelectInput(session, "net_taxa_level", choices = c("OTU", "Genus"), selected = "OTU")
         return()
       }
       cols <- get_sample_cols(rv)
       updatePickerInput(session, "net_env_cols", choices = cols, selected = character(0))
+
+      mt <- rv$microtable
+      if (!is.null(mt) && !is.null(mt$tax_table)) {
+        tax_cols <- colnames(mt$tax_table)
+        tax_ranks <- c("OTU", intersect(tax_cols, c("Genus", "Phylum", "Class", "Order", "Family")))
+        if (length(tax_ranks) == 0) tax_ranks <- c("OTU", "Genus")
+        updateSelectInput(session, "net_taxa_level", choices = tax_ranks, selected = "OTU")
+      }
     })
 
     get_color_palette <- function(name, n = 8) {
@@ -402,43 +432,53 @@ mod_network_server <- function(id, rv) {
       }
 
       analysis <- input$net_analysis_type
+      network_method_val <- input$net_network_method
       result <- tryCatch({
         mt <- rv$microtable
         dataset_name <- rv$microtable_name %||% "tmp_microtable"
 
-        cor_method_val <- if (input$net_cor_method == "NULL") NULL else input$net_cor_method
-        env_cols_val <- if (length(input$net_env_cols) > 0) input$net_env_cols else NULL
+        cor_method_val <- switch(network_method_val,
+          "spearman" = "spearman",
+          "sparcc" = "sparcc",
+          "SpiecEasi" = NULL,
+          "FlashWeave" = NULL,
+          "beemStatic" = NULL
+        )
+
+        use_sparcc_method_val <- if (network_method_val == "sparcc") "SpiecEasi" else NULL
+
+        nThreads_val <- if (network_method_val == "SpiecEasi") {
+          floor(parallel::detectCores() / 2)
+        } else {
+          1
+        }
 
         t_net <- microeco::trans_network$new(
           dataset = mt,
           cor_method = cor_method_val,
-          use_WGCNA_pearson_spearman = input$net_use_WGCNA,
-          use_NetCoMi_pearson_spearman = input$net_use_NetCoMi,
-          use_sparcc_method = if (input$net_use_sparcc_method) "SpiecEasi" else "NetCoMi",
+          use_sparcc_method = use_sparcc_method_val,
           taxa_level = input$net_taxa_level,
           filter_thres = input$net_filter_thres,
-          nThreads = input$net_nThreads,
-          env_cols = env_cols_val
+          nThreads = nThreads_val
         )
 
         init_code <- paste0(
           "t_net <- microeco::trans_network$new(\n",
           "  dataset = ", dataset_name, ",\n",
-          if (!is.null(cor_method_val)) paste0("  cor_method = \"", cor_method_val, "\",\n") else "  cor_method = NULL,\n",
+          if (!is.null(cor_method_val)) paste0("  cor_method = \"", cor_method_val, "\",\n") else "",
+          if (!is.null(use_sparcc_method_val)) paste0("  use_sparcc_method = \"", use_sparcc_method_val, "\",\n") else "",
           "  taxa_level = \"", input$net_taxa_level, "\",\n",
           "  filter_thres = ", input$net_filter_thres, "\n",
           ")\n"
         )
 
-        if (analysis == "cor" || analysis == "spieceasi" || analysis == "gcoda") {
-          network_method_val <- switch(analysis,
-            "cor" = "COR",
-            "spieceasi" = "SpiecEasi",
-            "gcoda" = "gcoda"
-          )
+        add_taxa_name_val <- if (input$net_add_taxa_name) input$net_taxa_name_level else "Phylum"
 
-          t_net$cal_network(
-            network_method = network_method_val,
+        cal_network_params <- switch(network_method_val,
+          "spearman" = list(
+            network_method = "COR",
+            add_taxa_name = add_taxa_name_val,
+            delete_unlinked_nodes = input$net_delete_unlinked,
             COR_p_thres = input$net_cor_p_thres,
             COR_p_adjust = input$net_cor_p_adjust,
             COR_return_padjust = input$net_cor_return_padjust,
@@ -446,16 +486,92 @@ mod_network_server <- function(id, rv) {
             COR_cut = input$net_cor_cut,
             COR_optimization = input$net_cor_optimization,
             COR_optimization_low_high = c(input$net_cor_opt_low, input$net_cor_opt_high),
-            COR_optimization_seq = input$net_cor_opt_seq,
-            SpiecEasi_method = input$net_spieceasi_method,
-            add_taxa_name = if (input$net_add_taxa_name) input$net_taxa_name_level else "Phylum",
+            COR_optimization_seq = input$net_cor_opt_seq
+          ),
+          "sparcc" = list(
+            network_method = "COR",
+            add_taxa_name = add_taxa_name_val,
+            delete_unlinked_nodes = input$net_delete_unlinked,
+            COR_p_thres = input$net_cor_p_thres,
+            COR_p_adjust = input$net_cor_p_adjust,
+            COR_return_padjust = input$net_cor_return_padjust,
+            COR_weight = input$net_cor_weight,
+            COR_cut = input$net_cor_cut,
+            COR_optimization = input$net_cor_optimization,
+            COR_optimization_low_high = c(input$net_cor_opt_low, input$net_cor_opt_high),
+            COR_optimization_seq = input$net_cor_opt_seq
+          ),
+          "SpiecEasi" = list(
+            network_method = "SpiecEasi",
+            add_taxa_name = add_taxa_name_val,
+            delete_unlinked_nodes = input$net_delete_unlinked,
+            SpiecEasi_method = input$net_spieceasi_method
+          ),
+          "FlashWeave" = list(
+            network_method = "FlashWeave",
+            add_taxa_name = add_taxa_name_val,
+            delete_unlinked_nodes = input$net_delete_unlinked,
+            # FlashWeave params are passed to Julia, so use lowercase true/false
+            FlashWeave_other_para = paste0(
+              "alpha=", input$net_flash_alpha,
+              ",sensitive=", tolower(input$net_flash_sensitive),
+              ",heterogeneous=", tolower(input$net_flash_heterogeneous)
+            )
+          ),
+          "beemStatic" = list(
+            network_method = "beemStatic",
+            add_taxa_name = add_taxa_name_val,
             delete_unlinked_nodes = input$net_delete_unlinked
           )
+        )
 
-          t_net$get_node_table()
-          t_net$get_edge_table()
-          t_net$cal_network_attr()
+        t_net$cal_network(!!!cal_network_params)
+        t_net$get_node_table()
+        t_net$get_edge_table()
+        t_net$cal_network_attr()
 
+        cal_network_code <- switch(network_method_val,
+          "spearman" = paste0(
+            "  COR_p_thres = ", input$net_cor_p_thres, ",\n",
+            "  COR_p_adjust = \"", input$net_cor_p_adjust, "\",\n",
+            "  COR_cut = ", input$net_cor_cut, "\n"
+          ),
+          "sparcc" = paste0(
+            "  COR_p_thres = ", input$net_cor_p_thres, ",\n",
+            "  COR_p_adjust = \"", input$net_cor_p_adjust, "\",\n",
+            "  COR_cut = ", input$net_cor_cut, "\n"
+          ),
+          "SpiecEasi" = paste0(
+            "  SpiecEasi_method = \"", input$net_spieceasi_method, "\"\n"
+          ),
+          # FlashWeave params are passed to Julia, so use lowercase true/false
+          "FlashWeave" = paste0(
+            "  FlashWeave_other_para = \"alpha=", input$net_flash_alpha,
+            ",sensitive=", tolower(input$net_flash_sensitive),
+            ",heterogeneous=", tolower(input$net_flash_heterogeneous), "\"\n"
+          ),
+          "beemStatic" = ""
+        )
+
+        network_method_code <- switch(network_method_val,
+          "spearman" = "COR",
+          "sparcc" = "COR",
+          "SpiecEasi" = "SpiecEasi",
+          "FlashWeave" = "FlashWeave",
+          "beemStatic" = "beemStatic"
+        )
+
+        cal_code <- paste0(
+          "t_net$cal_network(\n",
+          "  network_method = \"", network_method_code, "\",\n",
+          cal_network_code,
+          ")\n",
+          "t_net$get_node_table()\n",
+          "t_net$get_edge_table()\n",
+          "t_net$cal_network_attr()\n"
+        )
+
+        if (analysis == "plot_network") {
           plot_method_val <- input$net_plot_method
           node_label_val <- input$net_node_label
           node_color_val <- if (isTRUE(nzchar(input$net_node_color))) input$net_node_color else NULL
@@ -489,33 +605,17 @@ mod_network_server <- function(id, rv) {
           }
           local_rv$table_type <- "topo"
 
-          cal_code <- paste0(
-            "t_net$cal_network(\n",
-            "  network_method = \"", network_method_val, "\",\n",
-            "  COR_p_thres = ", input$net_cor_p_thres, ",\n",
-            "  COR_p_adjust = \"", input$net_cor_p_adjust, "\",\n",
-            "  COR_cut = ", input$net_cor_cut, "\n",
-            ")\n",
-            "t_net$get_node_table()\n",
-            "t_net$get_edge_table()\n",
-            "t_net$cal_network_attr()\n"
+          plot_code <- paste0(
+            "p <- t_net$plot_network(\n",
+            "  method = \"", plot_method_val, "\"\n",
+            ")\n"
           )
-          code <- paste0(init_code, "# ", analysis, " \u7f51\u7edc\u5206\u6790\n", cal_code)
+          code <- paste0(init_code, "# \u7f51\u7edc\u56fe\u5f62\n", cal_code, plot_code)
 
           list(success = TRUE, plot = plot_obj, data_result = t_net$res_network_attr,
                result_obj = t_net, code = code)
 
         } else if (analysis == "roles") {
-          t_net$cal_network(
-            network_method = "COR",
-            COR_p_thres = input$net_cor_p_thres,
-            COR_p_adjust = input$net_cor_p_adjust,
-            COR_weight = input$net_cor_weight,
-            COR_cut = input$net_cor_cut,
-            add_taxa_name = if (input$net_add_taxa_name) input$net_taxa_name_level else "Phylum",
-            delete_unlinked_nodes = input$net_delete_unlinked
-          )
-
           t_net$cal_module(
             method = input$roles_cal_method,
             module_name_prefix = input$roles_module_prefix
@@ -556,12 +656,6 @@ mod_network_server <- function(id, rv) {
           local_rv$table_type <- "nodes"
 
           roles_code <- paste0(
-            "t_net$cal_network(\n",
-            "  network_method = \"COR\",\n",
-            "  COR_p_thres = ", input$net_cor_p_thres, ",\n",
-            "  COR_p_adjust = \"", input$net_cor_p_adjust, "\",\n",
-            "  COR_cut = ", input$net_cor_cut, "\n",
-            ")\n",
             "t_net$cal_module(\n",
             "  method = \"", input$roles_cal_method, "\",\n",
             "  module_name_prefix = \"", input$roles_module_prefix, "\"\n",
@@ -569,22 +663,12 @@ mod_network_server <- function(id, rv) {
             "t_net$get_node_table(node_roles = TRUE)\n",
             "p <- t_net$plot_taxa_roles(use_type = ", use_type_val, ")\n"
           )
-          code <- paste0(init_code, "# \u8282\u70b9\u89d2\u8272\u5206\u6790\n", roles_code)
+          code <- paste0(init_code, "# \u8282\u70b9\u89d2\u8272\u5206\u6790\n", cal_code, roles_code)
 
           list(success = TRUE, plot = plot_obj, data_result = t_net$res_node_table,
                result_obj = t_net, code = code)
 
         } else if (analysis == "sumlinks") {
-          t_net$cal_network(
-            network_method = "COR",
-            COR_p_thres = input$net_cor_p_thres,
-            COR_p_adjust = input$net_cor_p_adjust,
-            COR_weight = input$net_cor_weight,
-            COR_cut = input$net_cor_cut,
-            add_taxa_name = if (input$net_add_taxa_name) input$net_taxa_name_level else "Phylum",
-            delete_unlinked_nodes = input$net_delete_unlinked
-          )
-
           t_net$cal_sum_links(
             taxa_level = input$sumlinks_taxa_level
           )
@@ -599,11 +683,6 @@ mod_network_server <- function(id, rv) {
           local_rv$table_type <- "topo"
 
           sumlinks_code <- paste0(
-            "t_net$cal_network(\n",
-            "  network_method = \"COR\",\n",
-            "  COR_p_thres = ", input$net_cor_p_thres, ",\n",
-            "  COR_cut = ", input$net_cor_cut, "\n",
-            ")\n",
             "t_net$cal_sum_links(taxa_level = \"", input$sumlinks_taxa_level, "\")\n",
             "p <- t_net$plot_sum_links(\n",
             "  plot_pos = ", input$sumlinks_plot_pos, ",\n",
@@ -611,22 +690,12 @@ mod_network_server <- function(id, rv) {
             "  method = \"", input$sumlinks_method, "\"\n",
             ")\n"
           )
-          code <- paste0(init_code, "# \u94fe\u63a5\u5206\u6790\n", sumlinks_code)
+          code <- paste0(init_code, "# \u94fe\u63a5\u5206\u6790\n", cal_code, sumlinks_code)
 
           list(success = TRUE, plot = plot_obj, data_result = t_net$res_sum_links_pos,
                result_obj = t_net, code = code)
 
         } else if (analysis == "attr") {
-          t_net$cal_network(
-            network_method = "COR",
-            COR_p_thres = input$net_cor_p_thres,
-            COR_p_adjust = input$net_cor_p_adjust,
-            COR_weight = input$net_cor_weight,
-            COR_cut = input$net_cor_cut,
-            add_taxa_name = if (input$net_add_taxa_name) input$net_taxa_name_level else "Phylum",
-            delete_unlinked_nodes = input$net_delete_unlinked
-          )
-
           t_net$cal_network_attr()
           t_net$get_node_table()
           t_net$get_edge_table()
@@ -634,17 +703,11 @@ mod_network_server <- function(id, rv) {
           local_rv$table_type <- "topo"
 
           attr_code <- paste0(
-            "t_net$cal_network(\n",
-            "  network_method = \"COR\",\n",
-            "  COR_p_thres = ", input$net_cor_p_thres, ",\n",
-            "  COR_p_adjust = \"", input$net_cor_p_adjust, "\",\n",
-            "  COR_cut = ", input$net_cor_cut, "\n",
-            ")\n",
             "t_net$cal_network_attr()\n",
             "t_net$get_node_table()\n",
             "t_net$get_edge_table()\n"
           )
-          code <- paste0(init_code, "# \u7f51\u7edc\u5c5e\u6027\u5206\u6790\n", attr_code)
+          code <- paste0(init_code, "# \u7f51\u7edc\u5c5e\u6027\u5206\u6790\n", cal_code, attr_code)
 
           list(success = TRUE, plot = NULL, data_result = t_net$res_network_attr,
                result_obj = t_net, code = code)
