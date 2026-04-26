@@ -4,7 +4,7 @@
 \alias{mod_codes_ui}
 \title{Generated Codes Module UI}
 \usage{
-mod_codes_ui(id, lang = "zh")
+mod_codes_ui(id, lang = "zh", init_code = "")
 }
 \arguments{
 \item{id}{Module ID}

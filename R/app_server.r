@@ -198,7 +198,8 @@ app_server <- function(input, output, session) {
 
   output$mod_codes_content <- renderUI({
     lang <- rv$current_language
-    mod_codes_ui("mod_codes", lang = lang)
+    current_codes <- isolate(paste(rv$generated_codes, collapse = ""))
+    mod_codes_ui("mod_codes", lang = lang, init_code = current_codes)
   })
   
   session$onSessionEnded(function() {

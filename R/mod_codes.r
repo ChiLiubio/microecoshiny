@@ -7,7 +7,7 @@
 #' @import shiny bs4Dash
 #' @keywords code generation
 #' @family utility
-mod_codes_ui <- function(id, lang = "zh") {
+mod_codes_ui <- function(id, lang = "zh", init_code = "") {
   ns <- NS(id)
   tr <- function(zh, en) if (lang == "en") en else zh
   tagList(
@@ -39,7 +39,7 @@ mod_codes_ui <- function(id, lang = "zh") {
           collapsible = FALSE,
           shinyAce::aceEditor(
             outputId = ns("code_editor"),
-            value = "",
+            value = init_code,
             mode = "r",
             theme = "github",
             readOnly = TRUE,
@@ -64,7 +64,14 @@ mod_codes_server <- function(id, rv) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
-    # Update code editor content
+    # Update code editor on initialization (show any existing codes)
+    observe({
+      code_text <- paste(rv$generated_codes, collapse = "")
+      theme_val <- if (rv$current_theme == "dark") "monokai" else "github"
+      shinyAce::updateAceEditor(session, "code_editor", value = code_text, theme = theme_val)
+    })
+
+    # Update code editor when new code is appended
     observeEvent(rv$code_counter, {
       code_text <- paste(rv$generated_codes, collapse = "")
       theme_val <- if (rv$current_theme == "dark") "monokai" else "github"

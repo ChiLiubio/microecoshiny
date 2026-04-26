@@ -199,8 +199,8 @@ mod_alpha_ui <- function(id, lang = "zh") {
 
           h4(tr("\u56fe\u578b (plot_type)", "plot_type")),
           fluidRow(
-            column(12, shiny::radioButtons(ns("plot_type"), tr("\u56fe\u578b (plot_type)", "plot_type"),
-              choices = c("ggboxplot", "ggdotplot", "ggviolin", "ggstripchart", "ggerrorplot", "errorbar", "barerrorbar"),
+            column(12, shiny::radioButtons(ns("plot_type"), tr("图型 (plot_type)", "plot_type"),
+              choices = c("ggboxplot", "ggdotplot", "ggviolin", "ggstripchart", "ggerrorplot", "errorbar", "barerrorbar", "heatmap", "coefplot"),
               selected = "ggboxplot", inline = TRUE))
           ),
 
@@ -359,35 +359,37 @@ mod_alpha_ui <- function(id, lang = "zh") {
           ),
 
           hr(),
-          h4(tr("\u70ed\u56fe/\u7cfb\u6570\u56fe\u53c2\u6570 (heatmap/coefplot)", "Heatmap/Coefplot Parameters")),
-          fluidRow(
-            column(2,
-              shiny::selectInput(ns("heatmap_cell"), "heatmap_cell",
-                choices = c("P.unadj", "P.adj", "Significance"), selected = "P.unadj"),
-              tt("heatmap_cell", "\u70ed\u56fe\u5355\u5143\u5185\u5bbd", "Heatmap cell content")
-            ),
-            column(2,
-              shiny::selectInput(ns("heatmap_sig"), "heatmap_sig",
-                choices = c("Significance", "P.adj"), selected = "Significance"),
-              tt("heatmap_sig", "\u70ed\u56fe\u663e\u8457\u6027\u6807\u8bb0", "Heatmap significance marker")
-            ),
-            column(2,
-              shiny::selectInput(ns("heatmap_x"), "heatmap_x",
-                choices = setNames(c("Factors", "Measure", "Method"), c(tr("\u56e0\u5b50", "Factors"), tr("\u6307\u6807", "Measure"), tr("\u65b9\u6cd5", "Method"))), selected = "Factors"),
-              tt("heatmap_x", "\u70ed\u56fex\u8f74\u53d8\u91cf", "Heatmap x-axis variable")
-            ),
-            column(2,
-              shiny::selectInput(ns("heatmap_y"), "heatmap_y",
-                choices = setNames(c("Measure", "Factors", "Method"), c(tr("\u6307\u6807", "Measure"), tr("\u56e0\u5b50", "Factors"), tr("\u65b9\u6cd5", "Method"))), selected = "Measure"),
-              tt("heatmap_y", "\u70ed\u56 Fey\u8f74\u53d8\u91cf", "Heatmap y-axis variable")
-            ),
-            column(2,
-              shiny::textInput(ns("heatmap_lab_fill"), "heatmap_lab_fill", value = "P value"),
-              tt("heatmap_lab_fill", "\u70ed\u56fe\u586b\u5149\u6807\u7b7e", "Heatmap fill label")
-            ),
-            column(2,
-              shiny::numericInput(ns("coefplot_sig_pos"), "coefplot_sig_pos", value = 2, min = -5, max = 5, step = 0.5),
-              tt("coefplot_sig_pos", "\u7cfb\u6570\u56fe\u663e\u8457\u6027\u4f4d\u7f6e", "Coefficient plot significance position")
+          shiny::conditionalPanel(condition = "input.plot_type == 'heatmap' || input.plot_type == 'coefplot'", ns = ns,
+            h4(tr("热图/系数图参数 (heatmap/coefplot)", "Heatmap/Coefplot Parameters")),
+            fluidRow(
+              column(2,
+                shiny::selectInput(ns("heatmap_cell"), "heatmap_cell",
+                  choices = c("P.unadj", "P.adj", "Significance"), selected = "P.unadj"),
+                tt("heatmap_cell", "\u70ed\u56fe\u5355\u5143\u5185\u5bbd", "Heatmap cell content")
+              ),
+              column(2,
+                shiny::selectInput(ns("heatmap_sig"), "heatmap_sig",
+                  choices = c("Significance", "P.adj"), selected = "Significance"),
+                tt("heatmap_sig", "\u70ed\u56fe\u663e\u8457\u6027\u6807\u8bb0", "Heatmap significance marker")
+              ),
+              column(2,
+                shiny::selectInput(ns("heatmap_x"), "heatmap_x",
+                  choices = setNames(c("Factors", "Measure", "Method"), c(tr("\u56e0\u5b50", "Factors"), tr("\u6307\u6807", "Measure"), tr("\u65b9\u6cd5", "Method"))), selected = "Factors"),
+                tt("heatmap_x", "\u70ed\u56fex\u8f74\u53d8\u91cf", "Heatmap x-axis variable")
+              ),
+              column(2,
+                shiny::selectInput(ns("heatmap_y"), "heatmap_y",
+                  choices = setNames(c("Measure", "Factors", "Method"), c(tr("\u6307\u6807", "Measure"), tr("\u56e0\u5b50", "Factors"), tr("\u65b9\u6cd5", "Method"))), selected = "Measure"),
+                tt("heatmap_y", "\u70ed\u56 Fey\u8f74\u53d8\u91cf", "Heatmap y-axis variable")
+              ),
+              column(2,
+                shiny::textInput(ns("heatmap_lab_fill"), "heatmap_lab_fill", value = "P value"),
+                tt("heatmap_lab_fill", "\u70ed\u56fe\u586b\u5149\u6807\u7b7e", "Heatmap fill label")
+              ),
+              column(2,
+                shiny::numericInput(ns("coefplot_sig_pos"), "coefplot_sig_pos", value = 2, min = -5, max = 5, step = 0.5),
+                tt("coefplot_sig_pos", "\u7cfb\u6570\u56fe\u663e\u8457\u6027\u4f4d\u7f6e", "Coefficient plot significance position")
+              )
             )
           ),
 
@@ -670,6 +672,7 @@ mod_alpha_server <- function(id, rv) {
         if (diff_method_val %in% c("lm", "lme", "multi-anova")) {
           formula_val <- trimws(input$diff_formula)
           formula_val <- gsub("^['\"]|['\"]$", "", formula_val)
+          formula_val <- gsub("^~\\s*", "", formula_val)
           diff_code <- paste0(diff_code, ",\n  formula = ", formula_val)
         }
         diff_code <- paste0(diff_code, "\n)\n")
@@ -679,7 +682,7 @@ mod_alpha_server <- function(id, rv) {
             method = diff_method_val,
             measure = measure_for_diff,
             alpha = input$alpha_level,
-            formula = input$diff_formula
+            formula = gsub("^~\\s*", "", trimws(input$diff_formula))
           )
         } else if (diff_method_val == "KW_dunn") {
           t_alpha$cal_diff(
@@ -739,11 +742,7 @@ mod_alpha_server <- function(id, rv) {
       req(local_rv$t_alpha)
 
       order_x_val <- if (isTRUE(nzchar(input$order_x))) strsplit(trimws(input$order_x), "[,\\s]+")[[1]] else NULL
-      measure_val <- input$measure
-      if (is.null(measure_val) || length(measure_val) == 0) {
-        measure_val <- "Shannon"
-      }
-      measure_for_plot <- measure_val[1]
+      measure_for_plot <- if (isTRUE(nzchar(input$diff_measure))) input$diff_measure else "Shannon"
 
       result <- tryCatch({
         t_alpha <- local_rv$t_alpha
@@ -803,6 +802,57 @@ mod_alpha_server <- function(id, rv) {
 
       local_rv$plot <- result$plot
       rv$last_plot <- result$plot
+
+      color_code <- if (input$color_theme == "Viridis") {
+        "viridisLite::viridis(8)"
+      } else {
+        paste0("RColorBrewer::brewer.pal(8, \"", input$color_theme, "\")")
+      }
+
+      plot_code <- paste0(
+        "# Alpha 多样性图形\n",
+        "p <- t_alpha$plot_alpha(\n",
+        "  plot_type = \"", input$plot_type, "\",\n",
+        "  color_values = ", color_code, ",\n",
+        "  measure = \"", measure_for_plot, "\",\n",
+        "  group = NULL,\n",
+        "  add = \"", input$add, "\",\n",
+        "  add_sig = ", input$add_sig, ",\n",
+        "  add_sig_label = \"", input$add_sig_label, "\",\n",
+        "  add_sig_text_size = ", input$add_sig_text_size, ",\n",
+        "  add_sig_label_num_dec = ", input$add_sig_label_num_dec, ",\n",
+        "  order_x_mean = ", input$order_x_mean, ",\n",
+        "  y_start = ", input$y_start, ",\n",
+        "  y_increase = ", input$y_increase, ",\n",
+        "  xtext_angle = ", input$xtext_angle, ",\n",
+        "  xtext_size = ", input$xtext_size, ",\n",
+        "  ytitle_size = ", input$ytitle_size, ",\n",
+        "  bar_width = ", input$bar_width, ",\n",
+        "  bar_alpha = ", input$bar_alpha, ",\n",
+        "  dodge_width = ", input$dodge_width, ",\n",
+        "  plot_SE = ", input$plot_SE, ",\n",
+        "  errorbar_size = ", input$errorbar_size, ",\n",
+        "  errorbar_width = ", input$errorbar_width, ",\n",
+        "  errorbar_addpoint = ", input$errorbar_addpoint, ",\n",
+        "  errorbar_color_black = ", input$errorbar_color_black, ",\n",
+        "  point_size = ", input$point_size, ",\n",
+        "  point_alpha = ", input$point_alpha, ",\n",
+        "  add_line = ", input$add_line, ",\n",
+        "  line_size = ", input$line_size, ",\n",
+        "  line_type = ", as.numeric(input$line_type), ",\n",
+        "  line_color = \"", input$line_color, "\",\n",
+        "  line_alpha = ", input$line_alpha, ",\n",
+        "  heatmap_cell = \"", input$heatmap_cell, "\",\n",
+        "  heatmap_sig = \"", input$heatmap_sig, "\",\n",
+        "  heatmap_x = \"", input$heatmap_x, "\",\n",
+        "  heatmap_y = \"", input$heatmap_y, "\",\n",
+        "  heatmap_lab_fill = \"", input$heatmap_lab_fill, "\",\n",
+        "  coefplot_sig_pos = ", input$coefplot_sig_pos, "\n",
+        ")\n",
+        "\nprint(p)"
+      )
+      append_code(rv, plot_code, "\u03b1\u591a\u6837\u6027 - \u751f\u6210\u56fe\u5f62")
+
       showNotification("\u2705 \u56fe\u5f62\u751f\u6210\u5b8c\u6210", type = "message")
     })
 
