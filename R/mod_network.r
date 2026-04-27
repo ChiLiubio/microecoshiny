@@ -92,51 +92,80 @@ mod_network_ui <- function(id, lang = "zh") {
           h4(tr("分析类型", "Analysis Type")),
           fluidRow(
             column(12, shiny::radioButtons(ns("net_analysis_type"), tr("分析类型", "Analysis Type"),
-              choices = setNames(c("roles", "sumlinks", "attr", "plot_network"),
-                                 c(tr("节点角色分析", "Node Roles"),
-                                   tr("链接分析", "Link Analysis"),
+              choices = setNames(c("module", "attr", "nodes", "edges", "eigen", "sumlinks", "save"),
+                                 c(tr("模块划分", "Module Detection"),
                                    tr("网络属性", "Network Attributes"),
-                                   tr("网络图形", "Network Plot"))),
-              selected = "plot_network", inline = TRUE))
+                                   tr("节点属性", "Node Attributes"),
+                                   tr("边属性", "Edge Attributes"),
+                                   tr("特征分析", "Eigen Analysis"),
+                                   tr("边连接求和", "Edge Link Sum"),
+                                   tr("网络保存", "Network Save"))),
+              selected = "module", inline = TRUE))
           ),
 
-          shiny::conditionalPanel(condition = "input.net_analysis_type == 'plot_network'", ns = ns,
-            h4(tr("网络图形参数", "Network Plot Parameters")),
+          # 1. 模块划分
+          shiny::conditionalPanel(condition = "input.net_analysis_type == 'module'", ns = ns,
+            h5(tr("模块划分参数", "Module Parameters")),
             fluidRow(
-              column(3, shiny::selectInput(ns("net_plot_method"), tr("plot_network method", "plot_network method"),
-                choices = c("igraph" = "igraph", "ggraph" = "ggraph", "networkD3" = "networkD3"),
-                selected = "igraph")),
-              column(2, shiny::selectInput(ns("net_node_label"), "node_label",
-                choices = c("name", "Abundance", "Phylum", "Class", "Order", "Family", "Genus", "module"),
-                selected = "name")),
-              column(2, shiny::selectInput(ns("net_node_color"), "node_color",
-                choices = c("none" = "", "name" = "name", "Phylum" = "Phylum", "Class" = "Class",
-                  "Order" = "Order", "Family" = "Family", "Genus" = "Genus", "module" = "module"),
-                selected = "")),
-              column(2)
-            ),
-            fluidRow(
-              column(2, shinyWidgets::materialSwitch(ns("net_ggraph_text"), "ggraph_node_text", value = TRUE, status = "info")),
-              column(2, shiny::numericInput(ns("net_ggraph_size"), "ggraph_node_size", value = 2, min = 0.5, max = 6)),
-              column(2, shiny::numericInput(ns("net_ggraph_text_size"), "ggraph_text_size", value = 3, min = 1, max = 8)),
-              column(2, shiny::selectInput(ns("net_ggraph_layout"), "ggraph_layout",
-                choices = c("fr", "kk", "lgl", "graphopt", "drl", "mds"), selected = "fr")),
-              column(2, shinyWidgets::materialSwitch(ns("net_d3_zoom"), "networkD3_zoom", value = TRUE, status = "info")),
-              column(2, shinyWidgets::materialSwitch(ns("net_d3_legend"), "networkD3_node_legend", value = TRUE, status = "info"))
-            )
-          ),
-
-          shiny::conditionalPanel(condition = "input.net_analysis_type == 'roles'", ns = ns,
-            h4(paste0("cal_module + plot_taxa_roles ", tr("参数", "Parameters"))),
-            fluidRow(
-              column(3, shiny::selectInput(ns("roles_cal_method"), "cal_module method",
+              column(3, shiny::selectInput(ns("module_method"), tr("method (模块检测算法)", "method"),
                 choices = c("cluster_fast_greedy", "cluster_walktrap", "cluster_edge_betweenness",
                   "cluster_infomap", "cluster_label_prop", "cluster_leading_eigen",
                   "cluster_louvain", "cluster_spinglass", "cluster_optimal"),
                 selected = "cluster_fast_greedy")),
-              column(3, shiny::textInput(ns("roles_module_prefix"), "module_name_prefix", value = "M")),
-              column(6)
+              column(3, shiny::textInput(ns("module_prefix"), "module_name_prefix", value = "M"))
             ),
+            fluidRow(
+              column(12, shiny::actionButton(ns("run_module"), tr("\U0001f3c1 开始分析", "\U0001f3c1 Run Analysis"),
+                icon = icon("play"), class = "btn-success", width = "200px"))
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("\U0001f4ca 结果表", "\U0001f4ca Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
+                  DT::dataTableOutput(ns("module_table"))
+                )
+              )
+            )
+          ),
+
+          # 2. 网络属性
+          shiny::conditionalPanel(condition = "input.net_analysis_type == 'attr'", ns = ns,
+            h5(tr("网络属性参数", "Network Attributes Parameters")),
+            fluidRow(
+              column(12, shiny::actionButton(ns("run_attr"), tr("\U0001f3c1 开始分析", "\U0001f3c1 Run Analysis"),
+                icon = icon("play"), class = "btn-success", width = "200px"))
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("\U0001f4ca 结果表", "\U0001f4ca Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
+                  DT::dataTableOutput(ns("attr_table"))
+                )
+              )
+            )
+          ),
+
+          # 3. 节点属性 - 有图形
+          shiny::conditionalPanel(condition = "input.net_analysis_type == 'nodes'", ns = ns,
+            h5(tr("节点属性参数", "Node Attributes Parameters")),
+            fluidRow(
+              column(12, shiny::actionButton(ns("run_nodes"), tr("\U0001f3c1 开始分析", "\U0001f3c1 Run Analysis"),
+                icon = icon("play"), class = "btn-success", width = "200px"))
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("\U0001f4ca 结果表", "\U0001f4ca Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
+                  DT::dataTableOutput(ns("nodes_table"))
+                )
+              )
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("\U0001f4ca 图区", "\U0001f4ca Plot Area"), status = "info", solidHeader = TRUE, width = NULL,
+                  shinycssloaders::withSpinner(shiny::plotOutput(ns("nodes_plot"), height = "600px"))
+                )
+              )
+            ),
+            hr(),
+            h4(tr("图形参数", "Plot Parameters")),
             fluidRow(
               column(2, shiny::selectInput(ns("roles_plot_type"), "use_type",
                 choices = setNames(c("1", "2"), c(tr("Zi-Pi散点图", "Zi-Pi Scatter"), tr("分层图", "Hierarchical Plot"))),
@@ -153,70 +182,168 @@ mod_network_ui <- function(id, lang = "zh") {
             fluidRow(
               column(2, shinyWidgets::materialSwitch(ns("roles_plot_module"), "plot_module", value = FALSE, status = "info")),
               column(2, shinyWidgets::materialSwitch(ns("roles_label_italic"), "label_text_italic", value = FALSE, status = "primary")),
+              column(2, shinyWidgets::materialSwitch(ns("roles_plot_module_name"), "plot_module_name", value = TRUE, status = "success")),
+              column(4)
+            ),
+            fluidRow(
               column(4, shiny::selectInput(ns("roles_use_level"), "use_level (type=2)",
                 choices = c("Phylum", "Class", "Order", "Family", "Genus"), selected = "Phylum")),
-              column(4)
+              column(4, shiny::selectInput(ns("roles_show_value"), "show_value",
+                choices = setNames(list("z", "p", c("z", "p")), c("z", "p", "z, p")),
+                selected = c("z", "p"), multiple = TRUE)),
+              column(2, shiny::numericInput(ns("roles_show_number"), "show_number", value = 10, min = 1, max = 50)),
+              column(2, shiny::selectInput(ns("roles_plot_color"), "plot_color",
+                choices = c("Phylum", "Class", "Order", "Family", "Genus"), selected = "Phylum")),
+              column(2, shiny::selectInput(ns("roles_plot_shape"), "plot_shape",
+                choices = c("taxa_roles", "module"), selected = "taxa_roles")),
+              column(2, shiny::selectInput(ns("roles_plot_size"), "plot_size",
+                choices = c("Abundance", "degree", "betweenness"), selected = "Abundance"))
+            ),
+            hr(),
+            h4(tr("图片保存与下载", "Save & Download Plot")),
+            fluidRow(
+              column(2, shiny::selectInput(ns("net_image_format"), tr("格式", "Format"),
+                choices = c("PNG" = "png", "PDF" = "pdf", "SVG" = "svg", "TIFF" = "tiff"), selected = "png")),
+              column(1, shiny::numericInput(ns("net_save_width"), tr("宽 (width)", "Width"), value = 12, min = 4, max = 20)),
+              column(1, shiny::numericInput(ns("net_save_height"), tr("高 (height)", "Height"), value = 10, min = 4, max = 15)),
+              column(2, shiny::numericInput(ns("net_save_dpi"), "DPI", value = 300, min = 72, max = 600, step = 72)),
+              column(2, shiny::actionButton(ns("net_save_plot_btn"), tr("\U0001f4e5保存图片", "\U0001f4e5Save Plot"),
+                icon = icon("save"), class = "btn-outline-secondary", width = "100%"))
+            ),
+            fluidRow(
+              column(2, shiny::selectInput(ns("net_table_download_type"), tr("下载类型", "Download Type"),
+                choices = setNames(c("nodes"), c(tr("节点表", "Nodes"))),
+                selected = "nodes")),
+              column(2, shiny::selectInput(ns("net_table_format"), tr("表格", "Table"),
+                choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
+              column(2, shiny::downloadButton(ns("net_download_table"), tr("\U0001f4e5表格下载", "\U0001f4e5Download Table"),
+                class = "btn-outline-info", width = "100%")),
+              column(6)
             )
           ),
-          shiny::conditionalPanel(condition = "input.net_analysis_type == 'sumlinks'", ns = ns,
-            h4(paste0("cal_sum_links + plot_sum_links ", tr("参数", "Parameters"))),
+
+          # 4. 边属性
+          shiny::conditionalPanel(condition = "input.net_analysis_type == 'edges'", ns = ns,
+            h5(tr("边属性参数", "Edge Attributes Parameters")),
             fluidRow(
+              column(12, shiny::actionButton(ns("run_edges"), tr("\U0001f3c1 开始分析", "\U0001f3c1 Run Analysis"),
+                icon = icon("play"), class = "btn-success", width = "200px"))
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("\U0001f4ca 结果表", "\U0001f4ca Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
+                  DT::dataTableOutput(ns("edges_table"))
+                )
+              )
+            )
+          ),
+
+          # 5. 特征分析
+          shiny::conditionalPanel(condition = "input.net_analysis_type == 'eigen'", ns = ns,
+            h5(tr("特征分析参数", "Eigen Analysis Parameters")),
+            fluidRow(
+              column(12, shiny::actionButton(ns("run_eigen"), tr("\U0001f3c1 开始分析", "\U0001f3c1 Run Analysis"),
+                icon = icon("play"), class = "btn-success", width = "200px"))
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("\U0001f4ca 结果表", "\U0001f4ca Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
+                  DT::dataTableOutput(ns("eigen_table"))
+                )
+              )
+            )
+          ),
+
+          # 6. 边连接求和 - 有图形
+          shiny::conditionalPanel(condition = "input.net_analysis_type == 'sumlinks'", ns = ns,
+            h5(tr("边连接求和参数", "Edge Link Sum Parameters")),
+            fluidRow(
+              column(12, shiny::actionButton(ns("run_sumlinks"), tr("\U0001f3c1 开始分析", "\U0001f3c1 Run Analysis"),
+                icon = icon("play"), class = "btn-success", width = "200px"))
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("\U0001f4ca 结果表", "\U0001f4ca Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
+                  DT::dataTableOutput(ns("sumlinks_table"))
+                )
+              )
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("\U0001f4ca 图区", "\U0001f4ca Plot Area"), status = "info", solidHeader = TRUE, width = NULL,
+                  shinycssloaders::withSpinner(shiny::plotOutput(ns("sumlinks_plot"), height = "600px"))
+                )
+              )
+            ),
+            hr(),
+            h4(tr("图形参数", "Plot Parameters")),
+            fluidRow(
+              column(3, shiny::numericInput(ns("sumlinks_taxa_level_plot"), "taxa_level", value = 1, min = 1, max = 5, step = 1)),
               column(3, shinyWidgets::materialSwitch(ns("sumlinks_plot_pos"), tr("plot_pos (正相关)", "plot_pos (positive correlation)"), value = TRUE, status = "primary")),
               column(3, shiny::numericInput(ns("sumlinks_plot_num"), "plot_num", value = NULL, min = 1)),
               column(3, shiny::selectInput(ns("sumlinks_color_theme"), "color_values",
                 choices = c("Dark2", "Set1", "Set2", "Set3", "Paired", "Spectral", "Viridis"),
-                selected = "Dark2")),
+                selected = "Dark2"))
+            ),
+            fluidRow(
               column(3, shiny::selectInput(ns("sumlinks_method"), "method",
                 choices = c("chorddiag", "circlize"), selected = "chorddiag"))
             ),
+            hr(),
+            h4(tr("图片保存与下载", "Save & Download Plot")),
             fluidRow(
-              column(3, shiny::selectInput(ns("sumlinks_taxa_level"), "taxa_level",
-                choices = c("Phylum", "Class", "Order", "Family", "Genus"), selected = "Phylum")),
-              column(9)
+              column(2, shiny::selectInput(ns("net_image_format_sl"), tr("格式", "Format"),
+                choices = c("PNG" = "png", "PDF" = "pdf", "SVG" = "svg", "TIFF" = "tiff"), selected = "png")),
+              column(1, shiny::numericInput(ns("net_save_width_sl"), tr("宽 (width)", "Width"), value = 12, min = 4, max = 20)),
+              column(1, shiny::numericInput(ns("net_save_height_sl"), tr("高 (height)", "Height"), value = 10, min = 4, max = 15)),
+              column(2, shiny::numericInput(ns("net_save_dpi_sl"), "DPI", value = 300, min = 72, max = 600, step = 72)),
+              column(2, shiny::actionButton(ns("net_save_plot_btn_sl"), tr("\U0001f4e5保存图片", "\U0001f4e5Save Plot"),
+                icon = icon("save"), class = "btn-outline-secondary", width = "100%"))
+            ),
+            fluidRow(
+              column(2, shiny::selectInput(ns("net_table_download_type_sl"), tr("下载类型", "Download Type"),
+                choices = setNames(c("sumlinks"), c(tr("连接求和表", "Sum Links"))),
+                selected = "sumlinks")),
+              column(2, shiny::selectInput(ns("net_table_format_sl"), tr("表格", "Table"),
+                choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
+              column(2, shiny::downloadButton(ns("net_download_table_sl"), tr("\U0001f4e5表格下载", "\U0001f4e5Download Table"),
+                class = "btn-outline-info", width = "100%")),
+              column(6)
             )
           ),
-          hr(),
-          h4(tr("图片保存与下载", "Save & Download Plot")),
-          fluidRow(
-            column(2, shiny::selectInput(ns("net_image_format"), tr("格式", "Format"),
-              choices = c("PNG" = "png", "PDF" = "pdf", "SVG" = "svg", "TIFF" = "tiff"), selected = "png")),
-            column(1, shiny::numericInput(ns("net_save_width"), tr("宽 (width)", "Width"), value = 12, min = 4, max = 20)),
-            column(1, shiny::numericInput(ns("net_save_height"), tr("高 (height)", "Height"), value = 10, min = 4, max = 15)),
-            column(2, shiny::numericInput(ns("net_save_dpi"), "DPI", value = 300, min = 72, max = 600, step = 72)),
-            column(2, shiny::actionButton(ns("net_save_plot_btn"), tr("\U0001f4e5保存图片", "\U0001f4e5Save Plot"),
-              icon = icon("save"), class = "btn-outline-secondary", width = "100%"))
-          ),
-          fluidRow(
-            column(2, shiny::selectInput(ns("net_table_download_type"), tr("下载类型", "Download Type"),
-              choices = setNames(c("topo", "nodes", "edges"), c(tr("拓扑指标", "Topology"), tr("节点表", "Nodes"), tr("边表", "Edges"))),
-              selected = "topo")),
-            column(2, shiny::selectInput(ns("net_table_format"), tr("表格", "Table"),
-              choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
-            column(2, shiny::downloadButton(ns("net_download_table"), tr("\U0001f4e5表格下载", "\U0001f4e5Download Table"),
-              class = "btn-outline-info", width = "100%")),
-            column(6)
+
+          # 7. 网络保存
+          shiny::conditionalPanel(condition = "input.net_analysis_type == 'save'", ns = ns,
+            h5(tr("网络保存参数", "Network Save Parameters")),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("\U0001f4ca 保存选项", "Save Options"), status = "secondary", solidHeader = TRUE, width = NULL,
+                  fluidRow(
+                    column(4,
+                      shiny::selectInput(ns("net_save_format"), tr("保存格式", "Save Format"),
+                        choices = setNames(c("gexf", "igraph", "trans_network"),
+                                           c("GEFX (igraph)", "igraph 对象 (RData)", "trans_network 对象 (RData)")),
+                        selected = "gexf")
+                    ),
+                    column(4,
+                      shiny::textInput(ns("net_save_filename"), tr("文件名", "Filename"),
+                        value = "network", placeholder = "\u6587\u4ef6\u540d\u79f0...")
+                    ),
+                    column(4,
+                      shiny::selectInput(ns("net_save_dir_text"), tr("\U0001f4c1 保存位置", "Save Location"),
+                        choices = c("Desktop", "Documents", "Home"), selected = "Desktop")
+                    )
+                  ),
+                  fluidRow(
+                    column(12,
+                      shiny::actionButton(ns("run_save_network"), tr("\U0001f4e5 保存网络", "\U0001f4e5 Save Network"),
+                        icon = icon("save"), class = "btn-primary", width = "200px")
+                    )
+                  )
+                )
+              )
+            )
           )
-        )
-      )
-    ),
-    fluidRow(
-      column(12,
-        bs4Dash::box(title = tr("\U0001f4ca 图区", "\U0001f4ca Plot Area"), status = "info", solidHeader = TRUE, width = NULL,
-          shiny::conditionalPanel(
-            condition = sprintf("input['%s'] !== 'networkD3'", ns("net_plot_method")),
-            shinycssloaders::withSpinner(shiny::plotOutput(ns("network_plot"), height = "600px"))
-          ),
-          shiny::conditionalPanel(
-            condition = sprintf("input['%s'] === 'networkD3'", ns("net_plot_method")),
-            shinycssloaders::withSpinner(networkD3::forceNetworkOutput(ns("network_plot_html"), height = "600px"))
-          )
-        )
-      )
-    ),
-    fluidRow(
-      column(12,
-        bs4Dash::box(title = tr("\U0001f4ca 结果表", "\U0001f4ca Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
-          DT::dataTableOutput(ns("network_table"))
         )
       )
     )
@@ -431,202 +558,249 @@ mod_network_server <- function(id, rv) {
         return()
       }
 
-      analysis <- input$net_analysis_type
       network_method_val <- input$net_network_method
+      dataset_name <- rv$microtable_name %||% "tmp_microtable"
+
+      cor_method_val <- switch(network_method_val,
+        "spearman" = "spearman",
+        "sparcc" = "sparcc",
+        "SpiecEasi" = NULL,
+        "FlashWeave" = NULL,
+        "beemStatic" = NULL
+      )
+
+      use_sparcc_method_val <- if (network_method_val == "sparcc") "SpiecEasi" else NULL
+
+      nThreads_val <- if (network_method_val == "SpiecEasi") {
+        floor(parallel::detectCores() / 2)
+      } else {
+        1
+      }
+
+      init_code <- paste0(
+        "t_net <- microeco::trans_network$new(\n",
+        "  dataset = ", dataset_name, ",\n",
+        if (!is.null(cor_method_val)) paste0("  cor_method = \"", cor_method_val, "\",\n") else "",
+        if (!is.null(use_sparcc_method_val)) paste0("  use_sparcc_method = \"", use_sparcc_method_val, "\",\n") else "",
+        "  taxa_level = \"", input$net_taxa_level, "\",\n",
+        "  filter_thres = ", input$net_filter_thres, "\n",
+        ")\n"
+      )
+
+      add_taxa_name_val <- if (input$net_add_taxa_name) input$net_taxa_name_level else "Phylum"
+
+      cal_network_code <- switch(network_method_val,
+        "spearman" = paste0(
+          "  network_method = \"COR\",\n",
+          "  add_taxa_name = \"", add_taxa_name_val, "\",\n",
+          "  delete_unlinked_nodes = ", input$net_delete_unlinked, ",\n",
+          "  COR_p_thres = ", input$net_cor_p_thres, ",\n",
+          "  COR_p_adjust = \"", input$net_cor_p_adjust, "\",\n",
+          "  COR_return_padjust = ", input$net_cor_return_padjust, ",\n",
+          "  COR_weight = ", input$net_cor_weight, ",\n",
+          "  COR_cut = ", input$net_cor_cut, ",\n",
+          "  COR_optimization = ", input$net_cor_optimization, ",\n",
+          "  COR_optimization_low_high = c(", input$net_cor_opt_low, ", ", input$net_cor_opt_high, "),\n",
+          "  COR_optimization_seq = ", input$net_cor_opt_seq, "\n"
+        ),
+        "sparcc" = paste0(
+          "  network_method = \"COR\",\n",
+          "  add_taxa_name = \"", add_taxa_name_val, "\",\n",
+          "  delete_unlinked_nodes = ", input$net_delete_unlinked, ",\n",
+          "  COR_p_thres = ", input$net_cor_p_thres, ",\n",
+          "  COR_p_adjust = \"", input$net_cor_p_adjust, "\",\n",
+          "  COR_return_padjust = ", input$net_cor_return_padjust, ",\n",
+          "  COR_weight = ", input$net_cor_weight, ",\n",
+          "  COR_cut = ", input$net_cor_cut, ",\n",
+          "  COR_optimization = ", input$net_cor_optimization, ",\n",
+          "  COR_optimization_low_high = c(", input$net_cor_opt_low, ", ", input$net_cor_opt_high, "),\n",
+          "  COR_optimization_seq = ", input$net_cor_opt_seq, "\n"
+        ),
+        "SpiecEasi" = paste0(
+          "  network_method = \"SpiecEasi\",\n",
+          "  add_taxa_name = \"", add_taxa_name_val, "\",\n",
+          "  delete_unlinked_nodes = ", input$net_delete_unlinked, ",\n",
+          "  SpiecEasi_method = \"", input$net_spieceasi_method, "\"\n"
+        ),
+        "FlashWeave" = paste0(
+          "  network_method = \"FlashWeave\",\n",
+          "  add_taxa_name = \"", add_taxa_name_val, "\",\n",
+          "  delete_unlinked_nodes = ", input$net_delete_unlinked, ",\n",
+          "  FlashWeave_other_para = \"alpha=", input$net_flash_alpha,
+          ",sensitive=", tolower(input$net_flash_sensitive),
+          ",heterogeneous=", tolower(input$net_flash_heterogeneous), "\"\n"
+        ),
+        "beemStatic" = paste0(
+          "  network_method = \"beemStatic\",\n",
+          "  add_taxa_name = \"", add_taxa_name_val, "\",\n",
+          "  delete_unlinked_nodes = ", input$net_delete_unlinked, "\n"
+        )
+      )
+
+      network_method_code <- switch(network_method_val,
+        "spearman" = "COR",
+        "sparcc" = "COR",
+        "SpiecEasi" = "SpiecEasi",
+        "FlashWeave" = "FlashWeave",
+        "beemStatic" = "beemStatic"
+      )
+
+      cal_code <- paste0(
+        "t_net$cal_network(\n",
+        cal_network_code,
+        ")\n"
+      )
+
+      full_code <- paste0(init_code, cal_code)
+
+      append_code(rv, full_code, "\u7f51\u7edc\u6784\u5efa - \u9884\u5199\u4ee3\u7801")
+
       result <- tryCatch({
-        mt <- rv$microtable
-        dataset_name <- rv$microtable_name %||% "tmp_microtable"
+        withProgress(message = "\U0001f4ca \u6b63\u5728\u6784\u5efa\u7f51\u7edc...", value = 0, {
+          mt <- rv$microtable
 
-        cor_method_val <- switch(network_method_val,
-          "spearman" = "spearman",
-          "sparcc" = "sparcc",
-          "SpiecEasi" = NULL,
-          "FlashWeave" = NULL,
-          "beemStatic" = NULL
-        )
+          incProgress(0.15, detail = "\u521b\u5efa trans_network \u5bf9\u8c61...")
 
-        use_sparcc_method_val <- if (network_method_val == "sparcc") "SpiecEasi" else NULL
-
-        nThreads_val <- if (network_method_val == "SpiecEasi") {
-          floor(parallel::detectCores() / 2)
-        } else {
-          1
-        }
-
-        t_net <- microeco::trans_network$new(
-          dataset = mt,
-          cor_method = cor_method_val,
-          use_sparcc_method = use_sparcc_method_val,
-          taxa_level = input$net_taxa_level,
-          filter_thres = input$net_filter_thres,
-          nThreads = nThreads_val
-        )
-
-        init_code <- paste0(
-          "t_net <- microeco::trans_network$new(\n",
-          "  dataset = ", dataset_name, ",\n",
-          if (!is.null(cor_method_val)) paste0("  cor_method = \"", cor_method_val, "\",\n") else "",
-          if (!is.null(use_sparcc_method_val)) paste0("  use_sparcc_method = \"", use_sparcc_method_val, "\",\n") else "",
-          "  taxa_level = \"", input$net_taxa_level, "\",\n",
-          "  filter_thres = ", input$net_filter_thres, "\n",
-          ")\n"
-        )
-
-        add_taxa_name_val <- if (input$net_add_taxa_name) input$net_taxa_name_level else "Phylum"
-
-        cal_network_params <- switch(network_method_val,
-          "spearman" = list(
-            network_method = "COR",
-            add_taxa_name = add_taxa_name_val,
-            delete_unlinked_nodes = input$net_delete_unlinked,
-            COR_p_thres = input$net_cor_p_thres,
-            COR_p_adjust = input$net_cor_p_adjust,
-            COR_return_padjust = input$net_cor_return_padjust,
-            COR_weight = input$net_cor_weight,
-            COR_cut = input$net_cor_cut,
-            COR_optimization = input$net_cor_optimization,
-            COR_optimization_low_high = c(input$net_cor_opt_low, input$net_cor_opt_high),
-            COR_optimization_seq = input$net_cor_opt_seq
-          ),
-          "sparcc" = list(
-            network_method = "COR",
-            add_taxa_name = add_taxa_name_val,
-            delete_unlinked_nodes = input$net_delete_unlinked,
-            COR_p_thres = input$net_cor_p_thres,
-            COR_p_adjust = input$net_cor_p_adjust,
-            COR_return_padjust = input$net_cor_return_padjust,
-            COR_weight = input$net_cor_weight,
-            COR_cut = input$net_cor_cut,
-            COR_optimization = input$net_cor_optimization,
-            COR_optimization_low_high = c(input$net_cor_opt_low, input$net_cor_opt_high),
-            COR_optimization_seq = input$net_cor_opt_seq
-          ),
-          "SpiecEasi" = list(
-            network_method = "SpiecEasi",
-            add_taxa_name = add_taxa_name_val,
-            delete_unlinked_nodes = input$net_delete_unlinked,
-            SpiecEasi_method = input$net_spieceasi_method
-          ),
-          "FlashWeave" = list(
-            network_method = "FlashWeave",
-            add_taxa_name = add_taxa_name_val,
-            delete_unlinked_nodes = input$net_delete_unlinked,
-            # FlashWeave params are passed to Julia, so use lowercase true/false
-            FlashWeave_other_para = paste0(
-              "alpha=", input$net_flash_alpha,
-              ",sensitive=", tolower(input$net_flash_sensitive),
-              ",heterogeneous=", tolower(input$net_flash_heterogeneous)
-            )
-          ),
-          "beemStatic" = list(
-            network_method = "beemStatic",
-            add_taxa_name = add_taxa_name_val,
-            delete_unlinked_nodes = input$net_delete_unlinked
+          t_net <- microeco::trans_network$new(
+            dataset = mt,
+            cor_method = cor_method_val,
+            use_sparcc_method = use_sparcc_method_val,
+            taxa_level = input$net_taxa_level,
+            filter_thres = input$net_filter_thres,
+            nThreads = nThreads_val
           )
-        )
 
-        t_net$cal_network(!!!cal_network_params)
+          incProgress(0.25, detail = paste0("\u8ba1\u7b97\u7f51\u7edc (", network_method_val, ")..."))
+
+          cal_network_params <- switch(network_method_val,
+            "spearman" = list(
+              network_method = "COR",
+              add_taxa_name = add_taxa_name_val,
+              delete_unlinked_nodes = input$net_delete_unlinked,
+              COR_p_thres = input$net_cor_p_thres,
+              COR_p_adjust = input$net_cor_p_adjust,
+              COR_return_padjust = input$net_cor_return_padjust,
+              COR_weight = input$net_cor_weight,
+              COR_cut = input$net_cor_cut,
+              COR_optimization = input$net_cor_optimization,
+              COR_optimization_low_high = c(input$net_cor_opt_low, input$net_cor_opt_high),
+              COR_optimization_seq = input$net_cor_opt_seq
+            ),
+            "sparcc" = list(
+              network_method = "COR",
+              add_taxa_name = add_taxa_name_val,
+              delete_unlinked_nodes = input$net_delete_unlinked,
+              COR_p_thres = input$net_cor_p_thres,
+              COR_p_adjust = input$net_cor_p_adjust,
+              COR_return_padjust = input$net_cor_return_padjust,
+              COR_weight = input$net_cor_weight,
+              COR_cut = input$net_cor_cut,
+              COR_optimization = input$net_cor_optimization,
+              COR_optimization_low_high = c(input$net_cor_opt_low, input$net_cor_opt_high),
+              COR_optimization_seq = input$net_cor_opt_seq
+            ),
+            "SpiecEasi" = list(
+              network_method = "SpiecEasi",
+              add_taxa_name = add_taxa_name_val,
+              delete_unlinked_nodes = input$net_delete_unlinked,
+              SpiecEasi_method = input$net_spieceasi_method
+            ),
+            "FlashWeave" = list(
+              network_method = "FlashWeave",
+              add_taxa_name = add_taxa_name_val,
+              delete_unlinked_nodes = input$net_delete_unlinked,
+              FlashWeave_other_para = paste0(
+                "alpha=", input$net_flash_alpha,
+                ",sensitive=", tolower(input$net_flash_sensitive),
+                ",heterogeneous=", tolower(input$net_flash_heterogeneous)
+              )
+            ),
+            "beemStatic" = list(
+              network_method = "beemStatic",
+              add_taxa_name = add_taxa_name_val,
+              delete_unlinked_nodes = input$net_delete_unlinked
+            )
+          )
+
+          incProgress(0.3, detail = "\u6b63\u5728\u8ba1\u7b97\u7f51\u7edc\u8fb9\u7f18...")
+
+          do.call(t_net$cal_network, cal_network_params)
+
+          incProgress(0.3, detail = "\u6784\u5efa\u5b8c\u6210")
+
+          list(success = TRUE, t_net = t_net, code = cal_code, init_code = init_code)
+        })
+      }, error = function(e) {
+        list(success = FALSE, error = conditionMessage(e))
+      })
+
+      if (!isTRUE(result$success)) {
+        showNotification(result$error, type = "error", duration = 10)
+        return()
+      }
+
+      rv$network_obj <- result$t_net
+      rv$network_code <- paste0(result$init_code, result$code)
+      showNotification("\u7f51\u7edc\u6784\u5efa\u5b8c\u6210", type = "message")
+    })
+
+    observeEvent(input$run_module, {
+      req(rv$network_obj)
+      t_net <- rv$network_obj
+      result <- tryCatch({
+        t_net$cal_module(
+          method = input$module_method,
+          module_name_prefix = input$module_prefix
+        )
         t_net$get_node_table()
-        t_net$get_edge_table()
-        t_net$cal_network_attr()
-
-        cal_network_code <- switch(network_method_val,
-          "spearman" = paste0(
-            "  COR_p_thres = ", input$net_cor_p_thres, ",\n",
-            "  COR_p_adjust = \"", input$net_cor_p_adjust, "\",\n",
-            "  COR_cut = ", input$net_cor_cut, "\n"
-          ),
-          "sparcc" = paste0(
-            "  COR_p_thres = ", input$net_cor_p_thres, ",\n",
-            "  COR_p_adjust = \"", input$net_cor_p_adjust, "\",\n",
-            "  COR_cut = ", input$net_cor_cut, "\n"
-          ),
-          "SpiecEasi" = paste0(
-            "  SpiecEasi_method = \"", input$net_spieceasi_method, "\"\n"
-          ),
-          # FlashWeave params are passed to Julia, so use lowercase true/false
-          "FlashWeave" = paste0(
-            "  FlashWeave_other_para = \"alpha=", input$net_flash_alpha,
-            ",sensitive=", tolower(input$net_flash_sensitive),
-            ",heterogeneous=", tolower(input$net_flash_heterogeneous), "\"\n"
-          ),
-          "beemStatic" = ""
-        )
-
-        network_method_code <- switch(network_method_val,
-          "spearman" = "COR",
-          "sparcc" = "COR",
-          "SpiecEasi" = "SpiecEasi",
-          "FlashWeave" = "FlashWeave",
-          "beemStatic" = "beemStatic"
-        )
-
-        cal_code <- paste0(
-          "t_net$cal_network(\n",
-          "  network_method = \"", network_method_code, "\",\n",
-          cal_network_code,
+        module_code <- paste0(
+          "t_net$cal_module(\n",
+          "  method = \"", input$module_method, "\",\n",
+          "  module_name_prefix = \"", input$module_prefix, "\"\n",
           ")\n",
-          "t_net$get_node_table()\n",
-          "t_net$get_edge_table()\n",
-          "t_net$cal_network_attr()\n"
+          "t_net$get_node_table()\n"
         )
+        list(success = TRUE, data = t_net$res_node_table, code = module_code)
+      }, error = function(e) {
+        list(success = FALSE, error = conditionMessage(e))
+      })
+      if (!isTRUE(result$success)) {
+        showNotification(result$error, type = "error", duration = 10)
+        return()
+      }
+      local_rv$data_module <- result$data
+      append_code(rv, paste(rv$network_code, result$code), "\u6a21\u5757\u5212\u5206")
+      showNotification("\u5b8c\u6210", type = "message")
+    })
 
-        if (analysis == "plot_network") {
-          plot_method_val <- input$net_plot_method
-          node_label_val <- input$net_node_label
-          node_color_val <- if (isTRUE(nzchar(input$net_node_color))) input$net_node_color else NULL
+    observeEvent(input$run_attr, {
+      req(rv$network_obj)
+      t_net <- rv$network_obj
+      result <- tryCatch({
+        t_net$cal_network_attr()
+        attr_code <- "t_net$cal_network_attr()\n"
+        list(success = TRUE, data = t_net$res_network_attr, code = attr_code)
+      }, error = function(e) {
+        list(success = FALSE, error = conditionMessage(e))
+      })
+      if (!isTRUE(result$success)) {
+        showNotification(result$error, type = "error", duration = 10)
+        return()
+      }
+      local_rv$data_attr <- result$data
+      append_code(rv, paste(rv$network_code, result$code), "\u7f51\u7edc\u5c5e\u6027")
+      showNotification("\u5b8c\u6210", type = "message")
+    })
 
-          if (plot_method_val == "igraph") {
-            plot_obj <- t_net$plot_network(method = "igraph")
-          } else if (plot_method_val == "ggraph") {
-            plot_obj <- t_net$plot_network(
-              method = "ggraph",
-              node_label = node_label_val,
-              node_color = node_color_val,
-              ggraph_layout = input$net_ggraph_layout,
-              ggraph_node_size = input$net_ggraph_size,
-              ggraph_node_text = input$net_ggraph_text,
-              ggraph_text_size = input$net_ggraph_text_size
-            )
-          } else {
-            if (is.null(node_color_val)) {
-              node_color_val <- "module"
-              if (!"module" %in% names(t_net$res_node_table)) {
-                t_net$cal_module()
-              }
-            }
-            plot_obj <- t_net$plot_network(
-              method = "networkD3",
-              node_label = node_label_val,
-              node_color = node_color_val,
-              networkD3_zoom = input$net_d3_zoom,
-              networkD3_node_legend = input$net_d3_legend
-            )
-          }
-          local_rv$table_type <- "topo"
-
-          plot_code <- paste0(
-            "p <- t_net$plot_network(\n",
-            "  method = \"", plot_method_val, "\"\n",
-            ")\n"
-          )
-          code <- paste0(init_code, "# \u7f51\u7edc\u56fe\u5f62\n", cal_code, plot_code)
-
-          list(success = TRUE, plot = plot_obj, data_result = t_net$res_network_attr,
-               result_obj = t_net, code = code)
-
-        } else if (analysis == "roles") {
-          t_net$cal_module(
-            method = input$roles_cal_method,
-            module_name_prefix = input$roles_module_prefix
-          )
-
-          t_net$get_node_table(node_roles = TRUE)
-
-          use_type_val <- as.integer(input$roles_plot_type)
-
-          if (use_type_val == 1) {
-            add_label_group_val <- if (input$roles_add_label && length(input$roles_label_group) > 0) input$roles_label_group else NULL
+    observeEvent(input$run_nodes, {
+      req(rv$network_obj)
+      t_net <- rv$network_obj
+      result <- tryCatch({
+        t_net$get_node_table(node_roles = TRUE)
+        use_type_val <- as.integer(input$roles_plot_type)
+        color_values_val <- get_color_palette("Dark2", n = 12)
+        if (use_type_val == 1) {
+          add_label_group_val <- if (input$roles_add_label && length(input$roles_label_group) > 0) input$roles_label_group else NULL
           plot_obj <- t_net$plot_taxa_roles(
             use_type = use_type_val,
             roles_color_background = input$roles_color_bg,
@@ -636,84 +810,146 @@ mod_network_server <- function(id, rv) {
             label_text_color = input$roles_label_color,
             label_text_italic = input$roles_label_italic,
             plot_module = input$roles_plot_module,
+            plot_module_name = input$roles_plot_module_name,
             x_lim = c(0, 1)
           )
-          } else {
-            color_values_val <- get_color_palette(input$roles_color_theme, n = 12)
-            plot_obj <- t_net$plot_taxa_roles(
-              use_type = use_type_val,
-              use_level = input$roles_use_level,
-              show_value = c("z", "p"),
-              show_number = 1:10,
-              plot_color = "Phylum",
-              plot_shape = "taxa_roles",
-              plot_size = "Abundance",
-              color_values = color_values_val,
-              shape_values = c(16, 17, 7, 8, 15, 18, 11, 10, 12, 13, 9, 3, 4, 0, 1, 2, 14)
-            )
-          }
-
-          local_rv$table_type <- "nodes"
-
-          roles_code <- paste0(
-            "t_net$cal_module(\n",
-            "  method = \"", input$roles_cal_method, "\",\n",
-            "  module_name_prefix = \"", input$roles_module_prefix, "\"\n",
-            ")\n",
-            "t_net$get_node_table(node_roles = TRUE)\n",
-            "p <- t_net$plot_taxa_roles(use_type = ", use_type_val, ")\n"
-          )
-          code <- paste0(init_code, "# \u8282\u70b9\u89d2\u8272\u5206\u6790\n", cal_code, roles_code)
-
-          list(success = TRUE, plot = plot_obj, data_result = t_net$res_node_table,
-               result_obj = t_net, code = code)
-
-        } else if (analysis == "sumlinks") {
-          t_net$cal_sum_links(
-            taxa_level = input$sumlinks_taxa_level
-          )
-
-          plot_obj <- t_net$plot_sum_links(
-            plot_pos = input$sumlinks_plot_pos,
-            plot_num = if (!is.null(input$sumlinks_plot_num) && input$sumlinks_plot_num > 0) input$sumlinks_plot_num else NULL,
-            color_values = get_color_palette(input$sumlinks_color_theme, n = 8),
-            method = input$sumlinks_method
-          )
-
-          local_rv$table_type <- "topo"
-
-          sumlinks_code <- paste0(
-            "t_net$cal_sum_links(taxa_level = \"", input$sumlinks_taxa_level, "\")\n",
-            "p <- t_net$plot_sum_links(\n",
-            "  plot_pos = ", input$sumlinks_plot_pos, ",\n",
-            "  color_values = get_color_palette(\"", input$sumlinks_color_theme, "\"),\n",
-            "  method = \"", input$sumlinks_method, "\"\n",
-            ")\n"
-          )
-          code <- paste0(init_code, "# \u94fe\u63a5\u5206\u6790\n", cal_code, sumlinks_code)
-
-          list(success = TRUE, plot = plot_obj, data_result = t_net$res_sum_links_pos,
-               result_obj = t_net, code = code)
-
-        } else if (analysis == "attr") {
-          t_net$cal_network_attr()
-          t_net$get_node_table()
-          t_net$get_edge_table()
-
-          local_rv$table_type <- "topo"
-
-          attr_code <- paste0(
-            "t_net$cal_network_attr()\n",
-            "t_net$get_node_table()\n",
-            "t_net$get_edge_table()\n"
-          )
-          code <- paste0(init_code, "# \u7f51\u7edc\u5c5e\u6027\u5206\u6790\n", cal_code, attr_code)
-
-          list(success = TRUE, plot = NULL, data_result = t_net$res_network_attr,
-               result_obj = t_net, code = code)
-
         } else {
-          stop("\u672a\u77e5\u5206\u6790\u7c7b\u578b")
+          show_value_val <- input$roles_show_value
+          if (is.null(show_value_val)) show_value_val <- c("z", "p")
+          plot_obj <- t_net$plot_taxa_roles(
+            use_type = use_type_val,
+            use_level = input$roles_use_level,
+            show_value = show_value_val,
+            show_number = seq_len(input$roles_show_number),
+            plot_color = input$roles_plot_color,
+            plot_shape = input$roles_plot_shape,
+            plot_size = input$roles_plot_size,
+            color_values = color_values_val,
+            shape_values = c(16, 17, 7, 8, 15, 18, 11, 10, 12, 13, 9, 3, 4, 0, 1, 2, 14),
+            plot_module_name = input$roles_plot_module_name
+          )
+        }
+        nodes_code <- paste0(
+          "t_net$get_node_table(node_roles = TRUE)\n",
+          "p <- t_net$plot_taxa_roles(use_type = ", use_type_val, ")\n"
+        )
+        list(success = TRUE, data = t_net$res_node_table, plot = plot_obj, code = nodes_code)
+      }, error = function(e) {
+        list(success = FALSE, error = conditionMessage(e))
+      })
+      if (!isTRUE(result$success)) {
+        showNotification(result$error, type = "error", duration = 10)
+        return()
+      }
+      local_rv$data_nodes <- result$data
+      local_rv$plot_nodes <- result$plot
+      rv$last_plot <- result$plot
+      append_code(rv, paste(rv$network_code, result$code), "\u8282\u70b9\u5c5e\u6027")
+      showNotification("\u5b8c\u6210", type = "message")
+    })
+
+    observeEvent(input$run_edges, {
+      req(rv$network_obj)
+      t_net <- rv$network_obj
+      result <- tryCatch({
+        t_net$get_edge_table()
+        edges_code <- "t_net$get_edge_table()\n"
+        list(success = TRUE, data = t_net$res_edge_table, code = edges_code)
+      }, error = function(e) {
+        list(success = FALSE, error = conditionMessage(e))
+      })
+      if (!isTRUE(result$success)) {
+        showNotification(result$error, type = "error", duration = 10)
+        return()
+      }
+      local_rv$data_edges <- result$data
+      append_code(rv, paste(rv$network_code, result$code), "\u8fb9\u5c5e\u6027")
+      showNotification("\u5b8c\u6210", type = "message")
+    })
+
+    observeEvent(input$run_eigen, {
+      req(rv$network_obj)
+      t_net <- rv$network_obj
+      result <- tryCatch({
+        t_net$cal_eigen()
+        eigen_code <- "t_net$cal_eigen()\n"
+        list(success = TRUE, data = t_net$res_eigen, code = eigen_code)
+      }, error = function(e) {
+        list(success = FALSE, error = conditionMessage(e))
+      })
+      if (!isTRUE(result$success)) {
+        showNotification(result$error, type = "error", duration = 10)
+        return()
+      }
+      local_rv$data_eigen <- result$data
+      append_code(rv, paste(rv$network_code, result$code), "\u7279\u5f81\u5206\u6790")
+      showNotification("\u5b8c\u6210", type = "message")
+    })
+
+    observeEvent(input$run_sumlinks, {
+      req(rv$network_obj)
+      t_net <- rv$network_obj
+      result <- tryCatch({
+        t_net$cal_sum_links(taxa_level = input$sumlinks_taxa_level_plot)
+        plot_obj <- t_net$plot_sum_links(
+          plot_pos = input$sumlinks_plot_pos,
+          plot_num = if (!is.null(input$sumlinks_plot_num) && input$sumlinks_plot_num > 0) input$sumlinks_plot_num else NULL,
+          color_values = get_color_palette(input$sumlinks_color_theme, n = 8),
+          method = input$sumlinks_method
+        )
+        sumlinks_code <- paste0(
+          "t_net$cal_sum_links(taxa_level = ", input$sumlinks_taxa_level_plot, ")\n",
+          "p <- t_net$plot_sum_links(\n",
+          "  plot_pos = ", input$sumlinks_plot_pos, ",\n",
+          "  color_values = get_color_palette(\"", input$sumlinks_color_theme, "\"),\n",
+          "  method = \"", input$sumlinks_method, "\"\n",
+          ")\n"
+        )
+        list(success = TRUE, data = t_net$res_sum_links_pos, plot = plot_obj, code = sumlinks_code)
+      }, error = function(e) {
+        list(success = FALSE, error = conditionMessage(e))
+      })
+      if (!isTRUE(result$success)) {
+        showNotification(result$error, type = "error", duration = 10)
+        return()
+      }
+      local_rv$data_sumlinks <- result$data
+      local_rv$plot_sumlinks <- result$plot
+      rv$last_plot <- result$plot
+      append_code(rv, paste(rv$network_code, result$code), "\u8fb9\u8fde\u63a5\u6c42\u548c")
+      showNotification("\u5b8c\u6210", type = "message")
+    })
+
+    observeEvent(input$run_save_network, {
+      req(rv$network_obj)
+      t_net <- rv$network_obj
+
+      save_format <- input$net_save_format
+      filename <- input$net_save_filename
+      if (is.null(filename) || nchar(trimws(filename)) == 0) {
+        filename <- "network"
+      }
+      filename <- trimws(filename)
+
+      save_dir <- switch(input$net_save_dir_text,
+        "Desktop" = file.path(path.expand("~"), "Desktop"),
+        "Documents" = file.path(path.expand("~"), "Documents"),
+        "Home" = path.expand("~")
+      )
+
+      result <- tryCatch({
+        if (save_format == "gexf") {
+          full_path <- file.path(save_dir, paste0(filename, ".gexf"))
+          t_net$save_network(file = full_path)
+          list(success = TRUE, message = paste("Network saved to:", full_path))
+        } else if (save_format == "igraph") {
+          full_path <- file.path(save_dir, paste0(filename, "_igraph.RData"))
+          save(t_net$res_network, file = full_path)
+          list(success = TRUE, message = paste("igraph object saved to:", full_path))
+        } else if (save_format == "trans_network") {
+          full_path <- file.path(save_dir, paste0(filename, "_trans_network.RData"))
+          save(t_net, file = full_path)
+          list(success = TRUE, message = paste("trans_network object saved to:", full_path))
         }
       }, error = function(e) {
         list(success = FALSE, error = conditionMessage(e))
@@ -724,55 +960,76 @@ mod_network_server <- function(id, rv) {
         return()
       }
 
-      append_code(rv, result$code, paste0("\u7f51\u7edc\u5206\u6790 - ", analysis))
-      local_rv$plot <- result$plot
-      local_rv$data_result <- result$data_result
-      local_rv$result_obj <- result$result_obj
-      rv$last_plot <- result$plot
-      showNotification("\u5b8c\u6210", type = "message")
+      showNotification(result$message, type = "message", duration = 5)
     })
 
-    output$network_plot <- shiny::renderPlot({
-      req(local_rv$plot)
-      if (is(local_rv$plot, "ggplot")) {
-        print(local_rv$plot)
-      } else if (is(local_rv$plot, "igraph")) {
-        igraph::plot.igraph(local_rv$plot)
-      } else {
-        print(local_rv$plot)
-      }
-    })
-
-    output$network_plot_html <- networkD3::renderForceNetwork({
-      req(local_rv$plot)
-      if (inherits(local_rv$plot, "forceNetwork") || inherits(local_rv$plot, "htmlwidget")) {
-        local_rv$plot
-      }
-    })
-
-    output$network_table <- DT::renderDataTable({
-      table_type <- local_rv$table_type
-      obj <- local_rv$result_obj
-
-      if (is.null(obj) || !is(obj, "trans_network")) return(NULL)
-
-      dt <- switch(table_type,
-        "topo" = {
-          if (!is.null(obj$res_network_attr)) obj$res_network_attr else NULL
-        },
-        "nodes" = {
-          if (!is.null(obj$res_node_table)) obj$res_node_table else NULL
-        },
-        "edges" = {
-          if (!is.null(obj$res_edge_table)) obj$res_edge_table else NULL
-        },
-        NULL
-      )
-
-      if (is.data.frame(dt) || is.matrix(dt)) {
-        dt_df <- as.data.frame(dt)
-        DT::datatable(dt_df, options = list(scrollX = TRUE, pageLength = 20),
+    output$module_table <- DT::renderDataTable({
+      dt <- local_rv$data_module
+      if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+        DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 5),
           rownames = FALSE, filter = "top")
+      }
+    })
+
+    output$attr_table <- DT::renderDataTable({
+      dt <- local_rv$data_attr
+      if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+        DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 5),
+          rownames = FALSE, filter = "top")
+      }
+    })
+
+    output$nodes_table <- DT::renderDataTable({
+      dt <- local_rv$data_nodes
+      if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+        DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 5),
+          rownames = FALSE, filter = "top")
+      }
+    })
+
+    output$nodes_plot <- shiny::renderPlot({
+      req(local_rv$plot_nodes)
+      if (is(local_rv$plot_nodes, "ggplot")) {
+        print(local_rv$plot_nodes)
+      } else if (is(local_rv$plot_nodes, "igraph")) {
+        igraph::plot.igraph(local_rv$plot_nodes)
+      } else {
+        print(local_rv$plot_nodes)
+      }
+    })
+
+    output$edges_table <- DT::renderDataTable({
+      dt <- local_rv$data_edges
+      if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+        DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 5),
+          rownames = FALSE, filter = "top")
+      }
+    })
+
+    output$eigen_table <- DT::renderDataTable({
+      dt <- local_rv$data_eigen
+      if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+        DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 5),
+          rownames = FALSE, filter = "top")
+      }
+    })
+
+    output$sumlinks_table <- DT::renderDataTable({
+      dt <- local_rv$data_sumlinks
+      if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+        DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 5),
+          rownames = FALSE, filter = "top")
+      }
+    })
+
+    output$sumlinks_plot <- shiny::renderPlot({
+      req(local_rv$plot_sumlinks)
+      if (is(local_rv$plot_sumlinks, "ggplot")) {
+        print(local_rv$plot_sumlinks)
+      } else if (is(local_rv$plot_sumlinks, "igraph")) {
+        igraph::plot.igraph(local_rv$plot_sumlinks)
+      } else {
+        print(local_rv$plot_sumlinks)
       }
     })
 
@@ -783,19 +1040,31 @@ mod_network_server <- function(id, rv) {
         paste0("network_", type, ext)
       },
       content = function(file) {
-        obj <- local_rv$result_obj
-        if (is.null(obj) || !is(obj, "trans_network")) return()
-
-        table_type <- input$net_table_download_type
-        dt <- switch(table_type,
-          "topo" = obj$res_network_attr,
-          "nodes" = obj$res_node_table,
-          "edges" = obj$res_edge_table,
+        dt <- switch(input$net_table_download_type,
+          "topo" = local_rv$data_attr,
+          "nodes" = local_rv$data_nodes,
+          "edges" = local_rv$data_edges,
+          "module" = local_rv$data_module,
+          "eigen" = local_rv$data_eigen,
+          "sumlinks" = local_rv$data_sumlinks,
           NULL
         )
-
         if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
           write.table(as.data.frame(dt), file, sep = input$net_table_format,
+            row.names = FALSE, quote = TRUE)
+        }
+      }
+    )
+
+    output$net_download_table_sl <- downloadHandler(
+      filename = function() {
+        ext <- ifelse(input$net_table_format_sl == ",", ".csv", ".tsv")
+        paste0("network_sumlinks", ext)
+      },
+      content = function(file) {
+        dt <- local_rv$data_sumlinks
+        if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+          write.table(as.data.frame(dt), file, sep = input$net_table_format_sl,
             row.names = FALSE, quote = TRUE)
         }
       }
