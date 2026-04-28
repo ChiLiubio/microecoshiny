@@ -23,7 +23,7 @@ mod_nullmodel_ui <- function(id, lang = "zh") {
           fluidRow(
             column(3, shiny::numericInput(ns("null_filter_thres"), tr("filter_thres (相对丰度阈值)", "filter_thres (RA threshold)"),
               value = 0, min = 0, max = 1, step = 0.0001)),
-            column(3, shiny::numericInput(ns("null_taxa_number"), tr("taxa_number (笛组数)", "taxa_number (group number)"),
+            column(3, shiny::numericInput(ns("null_taxa_number"), tr("taxa_number (组数)", "taxa_number (group number)"),
               value = NA, min = 1)),
             column(3, shiny::selectInput(ns("null_group"), tr("分组列", "Group Column"),
               choices = character(0))),
@@ -56,9 +56,27 @@ mod_nullmodel_ui <- function(id, lang = "zh") {
                 choices = character(0))),
               column(3, shiny::textInput(ns("null_mantel_break_pts"), "break.pts",
                 value = "seq(0, 1, 0.02)"))
+            ),
+            fluidRow(
+              column(12, shiny::actionButton(ns("run_null_mantel_corr"), tr("\U0001f3c1 执行分析", "\U0001f3c1 Run Analysis"),
+                icon = icon("play"), class = "btn-success", width = "200px"))
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("\U0001f4ca 结果表", "\U0001f4ca Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
+                  DT::dataTableOutput(ns("null_mantel_table"))
+                )
+              )
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("\U0001f4ca 图区", "\U0001f4ca Plot Area"), status = "info", solidHeader = TRUE, width = NULL,
+                  shinycssloaders::withSpinner(shiny::plotOutput(ns("null_mantel_plot"), height = "550px"))
+                )
+              )
             )
           ),
-          shiny::conditionalPanel(condition = "input.null_analysis_type == 'ses_betampd' || input.null_analysis_type == 'ses_betamntd' || input.null_analysis_type == 'rcbray' || input.null_analysis_type == 'process'", ns = ns,
+          shiny::conditionalPanel(condition = "input.null_analysis_type == 'ses_betampd' || input.null_analysis_type == 'ses_betamntd' || input.null_analysis_type == 'rcbray' || input.null_analysis_type == 'nri' || input.null_analysis_type == 'nti' || input.null_analysis_type == 'cscore' || input.null_analysis_type == 'nst'", ns = ns,
             h4(tr("置换模型参数", "Null Model Parameters")),
             fluidRow(
               column(2, shiny::numericInput(ns("null_runs"), tr("runs (模拟次数)", "runs (permutations)"),
@@ -72,65 +90,100 @@ mod_nullmodel_ui <- function(id, lang = "zh") {
               column(2, shinyWidgets::materialSwitch(ns("null_exclude_conspec"), "exclude.conspecifics",
                 value = FALSE, status = "info")),
               column(3)
-            )
-          ),
-          shiny::conditionalPanel(condition = "input.null_analysis_type == 'ses_betamntd' && input.null_runs > 5000", ns = ns,
-            h4(paste0("iCAMP ", tr("加速参数", "Speed-up Parameters"))),
+            ),
+            shiny::conditionalPanel(condition = "input.null_analysis_type == 'ses_betamntd' && input.null_runs > 5000", ns = ns,
+              h4(paste0("iCAMP ", tr("加速参数", "Speed-up Parameters"))),
+              fluidRow(
+                column(3, shinyWidgets::materialSwitch(ns("null_use_icamp"), "use_iCAMP",
+                  value = FALSE, status = "warning")),
+                column(3, shiny::numericInput(ns("null_nworker"), "nworker",
+                  value = 2, min = 1, max = 16)),
+                column(6)
+              )
+            ),
+            shiny::conditionalPanel(condition = "input.null_analysis_type == 'nri' || input.null_analysis_type == 'nti'", ns = ns,
+              fluidRow(
+                column(3, shiny::selectInput(ns("null_nri_null_model"), "null.model",
+                  choices = c("taxa.labels", "richness", "frequency", "sample.pool",
+                    "phylogeny.pool", "independentswap", "trialswap"),
+                  selected = "taxa.labels")),
+                column(3, shinyWidgets::materialSwitch(ns("null_nri_weighted"), "abundance.weighted",
+                  value = FALSE, status = "info")),
+                column(3, shiny::numericInput(ns("null_nri_runs"), "runs",
+                  value = 999, min = 99, max = 9999)),
+                column(3)
+              )
+            ),
+            shiny::conditionalPanel(condition = "input.null_analysis_type == 'cscore'", ns = ns,
+              fluidRow(
+                column(4, shiny::selectInput(ns("null_cscore_group"), "by_group",
+                  choices = character(0))),
+                column(8)
+              )
+            ),
+            shiny::conditionalPanel(condition = "input.null_analysis_type == 'nst'", ns = ns,
+              fluidRow(
+                column(3, shiny::selectInput(ns("null_nst_method"), "method",
+                  choices = c("tNST", "pNST"), selected = "tNST")),
+                column(3, shiny::selectInput(ns("null_nst_group"), "group",
+                  choices = character(0))),
+                column(6)
+              )
+            ),
             fluidRow(
-              column(3, shinyWidgets::materialSwitch(ns("null_use_icamp"), "use_iCAMP",
-                value = FALSE, status = "warning")),
-              column(3, shiny::numericInput(ns("null_nworker"), "nworker",
-                value = 2, min = 1, max = 16)),
-              column(6)
-            )
-          ),
-          shiny::conditionalPanel(condition = "input.null_analysis_type == 'nri' || input.null_analysis_type == 'nti'", ns = ns,
-            h4(paste0("cal_NRI / cal_NTI ", tr("参数", "Parameters"))),
+              column(12, shiny::actionButton(ns("run_null_ses"), tr("\U0001f3c1 执行分析", "\U0001f3c1 Run Analysis"),
+                icon = icon("play"), class = "btn-success", width = "200px"))
+            ),
             fluidRow(
-              column(3, shiny::selectInput(ns("null_nri_null_model"), "null.model",
-                choices = c("taxa.labels", "richness", "frequency", "sample.pool",
-                  "phylogeny.pool", "independentswap", "trialswap"),
-                selected = "taxa.labels")),
-              column(3, shinyWidgets::materialSwitch(ns("null_nri_weighted"), "abundance.weighted",
-                value = FALSE, status = "info")),
-              column(3, shiny::numericInput(ns("null_nri_runs"), "runs",
-                value = 999, min = 99, max = 9999)),
-              column(3)
-            )
-          ),
-          shiny::conditionalPanel(condition = "input.null_analysis_type == 'cscore'", ns = ns,
-            h4(paste0("cal_Cscore ", tr("参数", "Parameters"))),
-            fluidRow(
-              column(4, shiny::selectInput(ns("null_cscore_group"), "by_group",
-                choices = character(0))),
-              column(8)
-            )
-          ),
-          shiny::conditionalPanel(condition = "input.null_analysis_type == 'nst'", ns = ns,
-            h4(paste0("cal_NST ", tr("参数", "Parameters"))),
-            fluidRow(
-              column(3, shiny::selectInput(ns("null_nst_method"), "method",
-                choices = c("tNST", "pNST"), selected = "tNST")),
-              column(3, shiny::selectInput(ns("null_nst_group"), "group",
-                choices = character(0))),
-              column(6)
+              column(12,
+                bs4Dash::box(title = tr("\U0001f4ca 结果表", "\U0001f4ca Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
+                  DT::dataTableOutput(ns("null_ses_table"))
+                )
+              )
             )
           ),
           shiny::conditionalPanel(condition = "input.null_analysis_type == 'process'", ns = ns,
             h4(paste0("cal_process ", tr("参数", "Parameters"))),
             fluidRow(
-              column(4, shinyWidgets::materialSwitch(ns("null_use_betamntd"), "use_betamntd (betaNTI)",
+              column(2, shiny::numericInput(ns("null_process_runs"), tr("runs (模拟次数)", "runs (permutations)"),
+                value = 1000, min = 99, max = 9999)),
+              column(3, shiny::selectInput(ns("null_process_null_model"), "null.model",
+                choices = c("taxa.labels", "richness", "frequency", "sample.pool",
+                  "phylogeny.pool", "independentswap", "trialswap"),
+                selected = "taxa.labels")),
+              column(2, shinyWidgets::materialSwitch(ns("null_process_abundance_weighted"), "abundance.weighted",
                 value = TRUE, status = "primary")),
+              column(2, shinyWidgets::materialSwitch(ns("null_use_betamntd"), "use_betamntd (betaNTI)",
+                value = TRUE, status = "primary")),
+              column(3)
+            ),
+            fluidRow(
               column(4, shiny::selectInput(ns("null_process_group"), "group",
                 choices = character(0))),
-              column(4)
+              column(8)
+            ),
+            fluidRow(
+              column(12, shiny::actionButton(ns("run_null_process"), tr("\U0001f3c1 执行分析", "\U0001f3c1 Run Analysis"),
+                icon = icon("play"), class = "btn-success", width = "200px"))
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("\U0001f4ca 结果表", "\U0001f4ca Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
+                  DT::dataTableOutput(ns("null_process_table"))
+                )
+              )
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("\U0001f4ca 图区", "\U0001f4ca Plot Area"), status = "info", solidHeader = TRUE, width = NULL,
+                  shinycssloaders::withSpinner(shiny::plotOutput(ns("null_process_plot"), height = "550px"))
+                )
+              )
             )
           ),
           hr(),
           h4(tr("图片保存与下载", "Save & Download Plot")),
           fluidRow(
-            column(2, shiny::actionButton(ns("run_nullmodel"), tr("\U0001f4ca 执行", "\U0001f4ca Run"),
-              icon = icon("play"), class = "btn-primary", width = "100%")),
             column(2, shiny::selectInput(ns("null_image_format"), tr("格式", "Format"),
               choices = c("PNG" = "png", "PDF" = "pdf", "SVG" = "svg", "TIFF" = "tiff"), selected = "png")),
             column(1, shiny::numericInput(ns("null_save_width"), tr("宽", "Width"), value = 10, min = 4, max = 20)),
@@ -148,20 +201,6 @@ mod_nullmodel_ui <- function(id, lang = "zh") {
           )
         )
       )
-    ),
-    fluidRow(
-      column(12,
-        bs4Dash::box(title = tr("\U0001f4ca 图区", "\U0001f4ca Plot Area"), status = "info", solidHeader = TRUE, width = NULL,
-          shinycssloaders::withSpinner(shiny::plotOutput(ns("null_plot"), height = "550px"))
-        )
-      )
-    ),
-    fluidRow(
-      column(12,
-        bs4Dash::box(title = tr("\U0001f4ca 结果表", "\U0001f4ca Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
-          DT::dataTableOutput(ns("null_table"))
-        )
-      )
     )
   )
 }
@@ -170,8 +209,11 @@ mod_nullmodel_server <- function(id, rv) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     local_rv <- reactiveValues(
-      plot = NULL,
-      data_result = NULL,
+      plot_mantel = NULL,
+      plot_process = NULL,
+      data_mantel = NULL,
+      data_ses = NULL,
+      data_process = NULL,
       save_dir = NULL,
       result_obj = NULL,
       table_type = "default"
@@ -195,27 +237,32 @@ mod_nullmodel_server <- function(id, rv) {
     })
 
     observeEvent(input$null_save_plot_btn, {
+      plot_to_save <- local_rv$plot_mantel %||% local_rv$plot_process
+      if (is.null(plot_to_save)) {
+        showNotification("没有可保存的图片", type = "warning")
+        return()
+      }
       default_name <- paste0("nullmodel_", input$null_analysis_type, ".", input$null_image_format)
       current_dir <- isolate(local_rv$save_dir)
       dir_display <- if (!is.null(current_dir) && nchar(current_dir) > 0) current_dir else ""
 
       showModal(modalDialog(
-        title = "\U0001f4be \u4fdd\u5b58\u56fe\u7247",
+        title = "\U0001f4be 保存图片",
         size = "m",
         easyClose = TRUE,
         fluidRow(
           column(12,
             tags$label(class = "control-label", style = "font-weight: bold;",
-              "\U0001f4c1 \u4fdd\u5b58\u6587\u4ef6\u5939"),
+              "\U0001f4c1 保存文件夹"),
             fluidRow(
               column(9,
                 shiny::textInput(ns("null_save_dir_text"), label = NULL, value = dir_display,
-                  placeholder = "\u8bf7\u70b9\u51fb\u53f3\u4fa7\u6309\u94ae\u9009\u62e9\u6587\u4ef6\u5939...",
+                  placeholder = "请点击右侧按钮选择文件夹...",
                   width = "100%")
               ),
               column(3, style = "padding-top: 0;",
-                shinyFiles::shinyDirButton(ns("null_save_dir_btn"), "\u6d4f\u89c8",
-                  "\u9009\u62e9\u4fdd\u5b58\u6587\u4ef6\u5939",
+                shinyFiles::shinyDirButton(ns("null_save_dir_btn"), "浏览",
+                  "选择保存文件夹",
                   class = "btn-outline-primary", icon = icon("folder-open"),
                   style = "margin-top: 25px;")
               )
@@ -224,30 +271,31 @@ mod_nullmodel_server <- function(id, rv) {
         ),
         tags$hr(style = "margin: 12px 0;"),
         fluidRow(
-          column(6, shiny::textInput(ns("null_save_filename"), "\U0001f4dd \u6587\u4ef6\u540d\u79f0",
+          column(6, shiny::textInput(ns("null_save_filename"), "\U0001f4dd 文件名称",
             value = default_name)),
           column(6, tags$div(style = "padding-top: 28px;",
             tags$p(class = "text-muted", style = "margin-bottom: 0;",
-              tags$span(icon("info-circle")), " \u683c\u5f0f: ",
+              tags$span(icon("info-circle")), " 格式: ",
               tags$code(toupper(input$null_image_format)),
-              " | \u5bbd\u00d7\u9ad8: ",
-              tags$code(paste0(input$null_save_width, "\u00d7", input$null_save_height)),
+              " | 宽×高: ",
+              tags$code(paste0(input$null_save_width, "×", input$null_save_height)),
               " | DPI: ", tags$code(input$null_save_dpi))
           ))
         ),
         footer = tagList(
-          shiny::actionButton(ns("null_confirm_save"), "\u2705 \u4fdd\u5b58\u5230\u6587\u4ef6\u5939",
+          shiny::actionButton(ns("null_confirm_save"), "\u2705 保存到文件夹",
             icon = icon("save"), class = "btn-primary"),
-          shiny::modalButton("\u53d6\u6d88")
+          shiny::modalButton("取消")
         )
       ))
     })
 
     observeEvent(input$null_confirm_save, {
-      req(local_rv$plot)
+      plot_to_save <- local_rv$plot_mantel %||% local_rv$plot_process
+      req(plot_to_save)
       save_dir <- local_rv$save_dir
       if (is.null(save_dir) || !isTRUE(nchar(save_dir) > 0)) {
-        showNotification("\u8bf7\u5148\u9009\u62e9\u4fdd\u5b58\u6587\u4ef6\u5939", type = "warning")
+        showNotification("请先选择保存文件夹", type = "warning")
         return()
       }
       fname <- input$null_save_filename
@@ -261,19 +309,19 @@ mod_nullmodel_server <- function(id, rv) {
         fname <- paste0(fname, ".", ext)
       }
       if (!dir.exists(save_dir)) {
-        showNotification("\u6587\u4ef6\u5939\u4e0d\u5b58\u5728\uff0c\u8bf7\u91cd\u65b0\u9009\u62e9", type = "error")
+        showNotification("文件夹不存在，请重新选择", type = "error")
         return()
       }
       full_path <- file.path(save_dir, fname)
 
       tryCatch({
-        ggplot2::ggsave(filename = full_path, plot = local_rv$plot,
+        ggplot2::ggsave(filename = full_path, plot = plot_to_save,
           width = input$null_save_width, height = input$null_save_height,
           units = "in", dpi = input$null_save_dpi, scale = 1)
         removeModal()
-        showNotification(paste0("\u2705 \u5df2\u4fdd\u5b58\u81f3: ", full_path), type = "message", duration = 5)
+        showNotification(paste0("\u2705 已保存至: ", full_path), type = "message", duration = 5)
       }, error = function(e) {
-        showNotification(paste0("\u4fdd\u5b58\u5931\u8d25: ", e$message), type = "error", duration = 10)
+        showNotification(paste0("保存失败: ", e$message), type = "error", duration = 10)
       })
     })
 
@@ -289,13 +337,13 @@ mod_nullmodel_server <- function(id, rv) {
         return()
       }
       cols <- get_sample_cols(rv)
-      updateSelectInput(session, "null_group", choices = c("\u65e0" = "", cols))
+      updateSelectInput(session, "null_group", choices = c("无" = "", cols))
       updateSelectInput(session, "null_select_group", choices = character(0), selected = character(0))
       updatePickerInput(session, "null_env_cols", choices = cols, selected = character(0))
-      updateSelectInput(session, "null_mantel_use_env", choices = c("\u65e0" = "", cols))
-      updateSelectInput(session, "null_cscore_group", choices = c("\u65e0" = "", cols))
+      updateSelectInput(session, "null_mantel_use_env", choices = c("无" = "", cols))
+      updateSelectInput(session, "null_cscore_group", choices = c("无" = "", cols))
       updateSelectInput(session, "null_nst_group", choices = cols)
-      updateSelectInput(session, "null_process_group", choices = c("\u65e0" = "", cols))
+      updateSelectInput(session, "null_process_group", choices = c("无" = "", cols))
     })
 
     observe({
@@ -308,29 +356,20 @@ mod_nullmodel_server <- function(id, rv) {
       updateSelectInput(session, "null_select_group", choices = vals, selected = vals)
     })
 
-    observeEvent(input$run_nullmodel, {
+    observeEvent(input$run_null_mantel_corr, {
       if (!check_microtable(rv)) {
-        showNotification("\u8bf7\u5148\u5bfc\u5165\u6570\u636e", type = "error")
+        showNotification("请先导入数据", type = "error")
+        return()
+      }
+      if (is.null(rv$microtable$phylo_tree)) {
+        showNotification("Mantel相关分析需要进化树数据（phylo_tree）", type = "error")
         return()
       }
 
-      if (is.null(rv$microtable$phylo_tree) && input$null_analysis_type != "rcbray" && input$null_analysis_type != "cscore" && input$null_analysis_type != "nst") {
-        showNotification("\u96f6\u6a21\u578b\u5206\u6790\u9700\u8981\u8fdb\u5316\u6811\u6570\u636e\uff08phylo_tree\uff09", type = "error")
-        return()
-      }
-
-      analysis <- input$null_analysis_type
       result <- tryCatch({
         dataset_name <- rv$microtable_name %||% "tmp_microtable"
-
-        taxa_num_val <- {
-          val <- input$null_taxa_number
-          if (is.null(val) || is.na(val) || val <= 0) NULL else val
-        }
-        filter_thres_val <- {
-          val <- input$null_filter_thres
-          if (is.null(val) || val <= 0) 0 else val
-        }
+        taxa_num_val <- { val <- input$null_taxa_number; if (is.null(val) || is.na(val) || val <= 0) NULL else val }
+        filter_thres_val <- { val <- input$null_filter_thres; if (is.null(val) || val <= 0) 0 else val }
         env_cols_val <- if (length(input$null_env_cols) > 0) input$null_env_cols else NULL
         select_group_val <- if (length(input$null_select_group) > 0) input$null_select_group else NULL
 
@@ -344,229 +383,20 @@ mod_nullmodel_server <- function(id, rv) {
           complete_na = input$null_complete_na
         )
 
-        init_code <- paste0(
-          "t_null <- microeco::trans_nullmodel$new(\n",
-          "  dataset = ", dataset_name, ",\n",
-          "  filter_thres = ", filter_thres_val, ",\n",
-          if (!is.null(taxa_num_val)) paste0("  taxa_number = ", taxa_num_val, ",\n") else "",
-          if (isTRUE(nzchar(input$null_group))) paste0("  group = \"", input$null_group, "\",\n") else "",
-          "  complete_na = ", input$null_complete_na, "\n",
-          ")\n"
+        use_env_val <- if (isTRUE(nzchar(input$null_mantel_use_env))) input$null_mantel_use_env else NULL
+        t_null$cal_mantel_corr(use_env = use_env_val)
+        p <- t_null$plot_mantel_corr()
+
+        mantel_code <- paste0(
+          "t_null$cal_mantel_corr(\n",
+          "  use_env = ", if (!is.null(use_env_val)) paste0("\"", use_env_val, "\"") else "NULL", "\n",
+          ")\n",
+          "p <- t_null$plot_mantel_corr()\n"
         )
+        init_code <- paste0("t_null <- microeco::trans_nullmodel$new(dataset = ", dataset_name, ")\n")
+        code <- paste0(init_code, "# Mantel相关树\n", mantel_code)
 
-        if (analysis == "mantel_corr") {
-          use_env_val <- if (isTRUE(nzchar(input$null_mantel_use_env))) input$null_mantel_use_env else NULL
-
-          t_null$cal_mantel_corr(use_env = use_env_val)
-
-          p <- t_null$plot_mantel_corr()
-
-          mantel_code <- paste0(
-            "t_null$cal_mantel_corr(\n",
-            "  use_env = ", if (!is.null(use_env_val)) paste0("\"", use_env_val, "\"") else "NULL", "\n",
-            ")\n",
-            "p <- t_null$plot_mantel_corr()\n"
-          )
-          code <- paste0(init_code, "# Mantel\u76f8\u5173\u6811\n", mantel_code)
-
-          list(success = TRUE, plot = p, data_result = t_null$res_mantel_corr$mantel.res,
-               result_obj = t_null, code = code, step = "mantel_corr")
-
-        } else if (analysis == "ses_betampd") {
-          t_null$cal_ses_betampd(
-            runs = input$null_runs,
-            null.model = input$null_null_model,
-            abundance.weighted = input$null_abundance_weighted
-          )
-
-          local_rv$table_type <- "ses_betampd"
-
-          ses_code <- paste0(
-            "t_null$cal_ses_betampd(\n",
-            "  runs = ", input$null_runs, ",\n",
-            "  null.model = \"", input$null_null_model, "\",\n",
-            "  abundance.weighted = ", input$null_abundance_weighted, "\n",
-            ")\n"
-          )
-          code <- paste0(init_code, "# betaMPD/betaNRI\n", ses_code)
-
-          list(success = TRUE, plot = NULL, data_result = t_null$res_ses_betampd,
-               result_obj = t_null, code = code, step = "ses_betampd")
-
-        } else if (analysis == "ses_betamntd") {
-          t_null$cal_ses_betamntd(
-            runs = input$null_runs,
-            null.model = input$null_null_model,
-            abundance.weighted = input$null_abundance_weighted,
-            exclude.conspecifics = input$null_exclude_conspec,
-            use_iCAMP = input$null_use_icamp,
-            nworker = input$null_nworker
-          )
-
-          local_rv$table_type <- "ses_betamntd"
-
-          ses_code <- paste0(
-            "t_null$cal_ses_betamntd(\n",
-            "  runs = ", input$null_runs, ",\n",
-            "  null.model = \"", input$null_null_model, "\",\n",
-            "  abundance.weighted = ", input$null_abundance_weighted, ",\n",
-            "  exclude.conspecifics = ", input$null_exclude_conspec, "\n",
-            ")\n"
-          )
-          code <- paste0(init_code, "# betaMNTD/betaNTI\n", ses_code)
-
-          list(success = TRUE, plot = NULL, data_result = t_null$res_ses_betamntd,
-               result_obj = t_null, code = code, step = "ses_betamntd")
-
-        } else if (analysis == "rcbray") {
-          t_null$cal_rcbray(
-            runs = input$null_runs,
-            verbose = TRUE,
-            null.model = input$null_null_model
-          )
-
-          local_rv$table_type <- "rcbray"
-
-          rcbray_code <- paste0(
-            "t_null$cal_rcbray(\n",
-            "  runs = ", input$null_runs, ",\n",
-            "  null.model = \"", input$null_null_model, "\"\n",
-            ")\n"
-          )
-          code <- paste0(init_code, "# RCbray\n", rcbray_code)
-
-          list(success = TRUE, plot = NULL, data_result = t_null$res_rcbray,
-               result_obj = t_null, code = code, step = "rcbray")
-
-        } else if (analysis == "nri") {
-          t_null$cal_NRI(
-            null.model = input$null_nri_null_model,
-            abundance.weighted = input$null_nri_weighted,
-            runs = input$null_nri_runs
-          )
-
-          local_rv$table_type <- "nri"
-
-          nri_code <- paste0(
-            "t_null$cal_NRI(\n",
-            "  null.model = \"", input$null_nri_null_model, "\",\n",
-            "  abundance.weighted = ", input$null_nri_weighted, ",\n",
-            "  runs = ", input$null_nri_runs, "\n",
-            ")\n"
-          )
-          code <- paste0(init_code, "# NRI\n", nri_code)
-
-          list(success = TRUE, plot = NULL, data_result = t_null$res_NRI,
-               result_obj = t_null, code = code, step = "nri")
-
-        } else if (analysis == "nti") {
-          t_null$cal_NTI(
-            null.model = input$null_nri_null_model,
-            abundance.weighted = input$null_nri_weighted,
-            runs = input$null_nri_runs
-          )
-
-          local_rv$table_type <- "nti"
-
-          nti_code <- paste0(
-            "t_null$cal_NTI(\n",
-            "  null.model = \"", input$null_nri_null_model, "\",\n",
-            "  abundance.weighted = ", input$null_nri_weighted, ",\n",
-            "  runs = ", input$null_nri_runs, "\n",
-            ")\n"
-          )
-          code <- paste0(init_code, "# NTI\n", nti_code)
-
-          list(success = TRUE, plot = NULL, data_result = t_null$res_NTI,
-               result_obj = t_null, code = code, step = "nti")
-
-        } else if (analysis == "cscore") {
-          cscore_group_val <- if (nchar(input$null_cscore_group)) input$null_cscore_group else NULL
-          res_cscore <- t_null$cal_Cscore(by_group = cscore_group_val)
-
-          local_rv$table_type <- "cscore"
-
-          cscore_code <- paste0(
-            "t_null$cal_Cscore(\n",
-            "  by_group = ", if (!is.null(cscore_group_val)) paste0("\"", cscore_group_val, "\"") else "NULL", "\n",
-            ")\n"
-          )
-          code <- paste0(init_code, "# C-score\n", cscore_code)
-
-          list(success = TRUE, plot = NULL, data_result = data.frame(C_score = res_cscore),
-               result_obj = t_null, code = code, step = "cscore")
-
-        } else if (analysis == "nst") {
-          if (isTRUE(nchar(input$null_nst_group) == 0)) {
-            stop("\u8bf7\u9009\u62e9NST\u7684group\u53c2\u6570")
-          }
-
-          t_null$cal_NST(
-            method = input$null_nst_method,
-            group = input$null_nst_group
-          )
-
-          local_rv$table_type <- "nst"
-
-          nst_code <- paste0(
-            "t_null$cal_NST(\n",
-            "  method = \"", input$null_nst_method, "\",\n",
-            "  group = \"", input$null_nst_group, "\"\n",
-            ")\n"
-          )
-          code <- paste0(init_code, "# NST\n", nst_code)
-
-          list(success = TRUE, plot = NULL, data_result = t_null$res_NST$index.pair,
-               result_obj = t_null, code = code, step = "nst")
-
-        } else if (analysis == "process") {
-          if (is.null(t_null$res_ses_betamntd)) {
-            t_null$cal_ses_betamntd(
-              runs = input$null_runs,
-              null.model = input$null_null_model,
-              abundance.weighted = input$null_abundance_weighted
-            )
-          }
-          if (is.null(t_null$res_rcbray)) {
-            t_null$cal_rcbray(
-              runs = input$null_runs,
-              verbose = TRUE,
-              null.model = input$null_null_model
-            )
-          }
-
-          t_null$cal_process(
-            use_betamntd = input$null_use_betamntd,
-            group = if (nchar(input$null_process_group)) input$null_process_group else NULL
-          )
-
-          local_rv$table_type <- "process"
-
-          p <- ggplot2::ggplot(t_null$res_process, ggplot2::aes(x = process, y = percentage, fill = process)) +
-            ggplot2::geom_bar(stat = "identity", width = 0.7) +
-            ggplot2::geom_text(ggplot2::aes(label = sprintf("%.1f%%", percentage)), vjust = -0.3, size = 4) +
-            ggplot2::scale_fill_brewer(palette = "Set2") +
-            ggplot2::theme_bw() +
-            ggplot2::theme(
-              axis.text.x = ggplot2::element_text(angle = 30, hjust = 1, size = 11),
-              legend.position = "none"
-            ) +
-            ggplot2::labs(x = NULL, y = "Percentage (%)", title = "\U751f\u6001\u8fc7\u7a0b\u5206\u914d")
-
-          process_code <- paste0(
-            "t_null$cal_process(\n",
-            "  use_betamntd = ", input$null_use_betamntd, ",\n",
-            "  group = ", if (nchar(input$null_process_group)) paste0("\"", input$null_process_group, "\"") else "NULL", "\n",
-            ")\n"
-          )
-          code <- paste0(init_code, "# \u751f\u6001\u8fc7\u7a0b\u63a8\u65ad\n", process_code)
-
-          list(success = TRUE, plot = p, data_result = t_null$res_process,
-               result_obj = t_null, code = code, step = "process")
-
-        } else {
-          stop("\u672a\u77e5\u5206\u6790\u7c7b\u578b")
-        }
+        list(success = TRUE, plot = p, data_result = t_null$res_mantel_corr$mantel.res, code = code)
       }, error = function(e) {
         list(success = FALSE, error = conditionMessage(e))
       })
@@ -575,31 +405,239 @@ mod_nullmodel_server <- function(id, rv) {
         showNotification(result$error, type = "error", duration = 10)
         return()
       }
-
-      append_code(rv, result$code, paste0("\u96f6\u6a21\u578b - ", result$step))
-      local_rv$plot <- result$plot
-      local_rv$data_result <- result$data_result
-      local_rv$result_obj <- result$result_obj
+      append_code(rv, result$code, "零模型 - mantel_corr")
+      local_rv$plot_mantel <- result$plot
+      local_rv$data_mantel <- result$data_result
       rv$last_plot <- result$plot
-      showNotification("\u5b8c\u6210", type = "message")
+      showNotification("完成", type = "message")
     })
 
-    output$null_plot <- shiny::renderPlot({
-      req(local_rv$plot)
-      if (is(local_rv$plot, "ggplot")) {
-        print(local_rv$plot)
-      } else {
-        print(local_rv$plot)
-      }
-    })
-
-    output$null_table <- DT::renderDataTable({
-      dt <- local_rv$data_result
+    output$null_mantel_table <- DT::renderDataTable({
+      dt <- local_rv$data_mantel
       if (is.data.frame(dt) || is.matrix(dt)) {
-        dt_df <- as.data.frame(dt)
-        DT::datatable(dt_df, options = list(scrollX = TRUE, pageLength = 20),
+        DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 20),
           rownames = TRUE, filter = "top")
       }
+    })
+
+    output$null_mantel_plot <- shiny::renderPlot({
+      req(local_rv$plot_mantel)
+      local_rv$plot_mantel
+    })
+
+    observeEvent(input$run_null_ses, {
+      if (!check_microtable(rv)) {
+        showNotification("请先导入数据", type = "error")
+        return()
+      }
+      if (is.null(rv$microtable$phylo_tree) && input$null_analysis_type != "rcbray" && input$null_analysis_type != "cscore" && input$null_analysis_type != "nst") {
+        showNotification("零模型分析需要进化树数据（phylo_tree）", type = "error")
+        return()
+      }
+
+      result <- tryCatch({
+        dataset_name <- rv$microtable_name %||% "tmp_microtable"
+        taxa_num_val <- { val <- input$null_taxa_number; if (is.null(val) || is.na(val) || val <= 0) NULL else val }
+        filter_thres_val <- { val <- input$null_filter_thres; if (is.null(val) || val <= 0) 0 else val }
+        env_cols_val <- if (length(input$null_env_cols) > 0) input$null_env_cols else NULL
+        select_group_val <- if (length(input$null_select_group) > 0) input$null_select_group else NULL
+
+        t_null <- microeco::trans_nullmodel$new(
+          dataset = rv$microtable,
+          filter_thres = filter_thres_val,
+          taxa_number = taxa_num_val,
+          group = if (isTRUE(nzchar(input$null_group))) input$null_group else NULL,
+          select_group = select_group_val,
+          env_cols = env_cols_val,
+          complete_na = input$null_complete_na
+        )
+
+        init_code <- paste0("t_null <- microeco::trans_nullmodel$new(dataset = ", dataset_name, ")\n")
+        data_result <- NULL
+
+        if (input$null_analysis_type == "ses_betampd") {
+          t_null$cal_ses_betampd(
+            runs = input$null_runs,
+            null.model = input$null_null_model,
+            abundance.weighted = input$null_abundance_weighted
+          )
+          data_result <- t_null$res_ses_betampd
+          local_rv$table_type <- "ses_betampd"
+          code <- paste0(init_code, "t_null$cal_ses_betampd(runs = ", input$null_runs, ")\n")
+
+        } else if (input$null_analysis_type == "ses_betamntd") {
+          t_null$cal_ses_betamntd(
+            runs = input$null_runs,
+            null.model = input$null_null_model,
+            abundance.weighted = input$null_abundance_weighted,
+            exclude.conspecifics = input$null_exclude_conspec,
+            use_iCAMP = input$null_use_icamp,
+            nworker = input$null_nworker
+          )
+          data_result <- t_null$res_ses_betamntd
+          local_rv$table_type <- "ses_betamntd"
+          code <- paste0(init_code, "t_null$cal_ses_betamntd(runs = ", input$null_runs, ")\n")
+
+        } else if (input$null_analysis_type == "rcbray") {
+          t_null$cal_rcbray(
+            runs = input$null_runs,
+            verbose = TRUE,
+            null.model = input$null_null_model
+          )
+          data_result <- t_null$res_rcbray
+          local_rv$table_type <- "rcbray"
+          code <- paste0(init_code, "t_null$cal_rcbray(runs = ", input$null_runs, ")\n")
+
+        } else if (input$null_analysis_type == "nri") {
+          t_null$cal_NRI(
+            null.model = input$null_nri_null_model,
+            abundance.weighted = input$null_nri_weighted,
+            runs = input$null_nri_runs
+          )
+          data_result <- t_null$res_NRI
+          local_rv$table_type <- "nri"
+          code <- paste0(init_code, "t_null$cal_NRI(runs = ", input$null_nri_runs, ")\n")
+
+        } else if (input$null_analysis_type == "nti") {
+          t_null$cal_NTI(
+            null.model = input$null_nri_null_model,
+            abundance.weighted = input$null_nri_weighted,
+            runs = input$null_nri_runs
+          )
+          data_result <- t_null$res_NTI
+          local_rv$table_type <- "nti"
+          code <- paste0(init_code, "t_null$cal_NTI(runs = ", input$null_nri_runs, ")\n")
+
+        } else if (input$null_analysis_type == "cscore") {
+          cscore_group_val <- if (nchar(input$null_cscore_group)) input$null_cscore_group else NULL
+          res_cscore <- t_null$cal_Cscore(by_group = cscore_group_val)
+          data_result <- data.frame(C_score = res_cscore)
+          local_rv$table_type <- "cscore"
+          code <- paste0(init_code, "t_null$cal_Cscore()\n")
+
+        } else if (input$null_analysis_type == "nst") {
+          if (!isTRUE(nchar(input$null_nst_group) > 0)) {
+            stop("请选择NST的group参数")
+          }
+          t_null$cal_NST(
+            method = input$null_nst_method,
+            group = input$null_nst_group
+          )
+          data_result <- t_null$res_NST$index.pair
+          local_rv$table_type <- "nst"
+          code <- paste0(init_code, "t_null$cal_NST(method = \"", input$null_nst_method, "\")\n")
+        }
+
+        list(success = TRUE, data_result = data_result, code = code)
+      }, error = function(e) {
+        list(success = FALSE, error = conditionMessage(e))
+      })
+
+      if (!isTRUE(result$success)) {
+        showNotification(result$error, type = "error", duration = 10)
+        return()
+      }
+      append_code(rv, result$code, paste0("零模型 - ", input$null_analysis_type))
+      local_rv$data_ses <- result$data_result
+      showNotification("完成", type = "message")
+    })
+
+    output$null_ses_table <- DT::renderDataTable({
+      dt <- local_rv$data_ses
+      if (is.data.frame(dt) || is.matrix(dt)) {
+        DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 20),
+          rownames = TRUE, filter = "top")
+      }
+    })
+
+    observeEvent(input$run_null_process, {
+      if (!check_microtable(rv)) {
+        showNotification("请先导入数据", type = "error")
+        return()
+      }
+      if (is.null(rv$microtable$phylo_tree)) {
+        showNotification("生态过程推断需要进化树数据（phylo_tree）", type = "error")
+        return()
+      }
+
+      result <- tryCatch({
+        dataset_name <- rv$microtable_name %||% "tmp_microtable"
+        taxa_num_val <- { val <- input$null_taxa_number; if (is.null(val) || is.na(val) || val <= 0) NULL else val }
+        filter_thres_val <- { val <- input$null_filter_thres; if (is.null(val) || val <= 0) 0 else val }
+        env_cols_val <- if (length(input$null_env_cols) > 0) input$null_env_cols else NULL
+        select_group_val <- if (length(input$null_select_group) > 0) input$null_select_group else NULL
+
+        t_null <- microeco::trans_nullmodel$new(
+          dataset = rv$microtable,
+          filter_thres = filter_thres_val,
+          taxa_number = taxa_num_val,
+          group = if (isTRUE(nzchar(input$null_group))) input$null_group else NULL,
+          select_group = select_group_val,
+          env_cols = env_cols_val,
+          complete_na = input$null_complete_na
+        )
+
+        if (is.null(t_null$res_ses_betamntd)) {
+          t_null$cal_ses_betamntd(
+            runs = input$null_process_runs,
+            null.model = input$null_process_null_model,
+            abundance.weighted = input$null_process_abundance_weighted
+          )
+        }
+        if (is.null(t_null$res_rcbray)) {
+          t_null$cal_rcbray(
+            runs = input$null_process_runs,
+            verbose = TRUE,
+            null.model = input$null_process_null_model
+          )
+        }
+
+        t_null$cal_process(
+          use_betamntd = input$null_use_betamntd,
+          group = if (nchar(input$null_process_group)) input$null_process_group else NULL
+        )
+
+        p <- ggplot2::ggplot(t_null$res_process, ggplot2::aes(x = process, y = percentage, fill = process)) +
+          ggplot2::geom_bar(stat = "identity", width = 0.7) +
+          ggplot2::geom_text(ggplot2::aes(label = sprintf("%.1f%%", percentage)), vjust = -0.3, size = 4) +
+          ggplot2::scale_fill_brewer(palette = "Set2") +
+          ggplot2::theme_bw() +
+          ggplot2::theme(
+            axis.text.x = ggplot2::element_text(angle = 30, hjust = 1, size = 11),
+            legend.position = "none"
+          ) +
+          ggplot2::labs(x = NULL, y = "Percentage (%)", title = "生态过程分配")
+
+        init_code <- paste0("t_null <- microeco::trans_nullmodel$new(dataset = ", dataset_name, ")\n")
+        code <- paste0(init_code, "t_null$cal_process()\np <- ggplot2::ggplot(t_null$res_process, ...)\n")
+
+        list(success = TRUE, plot = p, data_result = t_null$res_process, code = code)
+      }, error = function(e) {
+        list(success = FALSE, error = conditionMessage(e))
+      })
+
+      if (!isTRUE(result$success)) {
+        showNotification(result$error, type = "error", duration = 10)
+        return()
+      }
+      append_code(rv, result$code, "零模型 - process")
+      local_rv$plot_process <- result$plot
+      local_rv$data_process <- result$data_result
+      rv$last_plot <- result$plot
+      showNotification("完成", type = "message")
+    })
+
+    output$null_process_table <- DT::renderDataTable({
+      dt <- local_rv$data_process
+      if (is.data.frame(dt) || is.matrix(dt)) {
+        DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 20),
+          rownames = TRUE, filter = "top")
+      }
+    })
+
+    output$null_process_plot <- shiny::renderPlot({
+      req(local_rv$plot_process)
+      local_rv$plot_process
     })
 
     output$null_download_table <- downloadHandler(
@@ -608,7 +646,14 @@ mod_nullmodel_server <- function(id, rv) {
         paste0("nullmodel_", local_rv$table_type, ext)
       },
       content = function(file) {
-        dt <- local_rv$data_result
+        analysis_type <- input$null_analysis_type
+        dt <- if (analysis_type == "mantel_corr") {
+          local_rv$data_mantel
+        } else if (analysis_type == "process") {
+          local_rv$data_process
+        } else {
+          local_rv$data_ses
+        }
         if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
           write.table(as.data.frame(dt), file, sep = input$null_table_format,
             row.names = TRUE, quote = TRUE)

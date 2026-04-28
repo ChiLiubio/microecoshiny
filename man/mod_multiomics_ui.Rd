@@ -19,7 +19,6 @@ metabolome data import, pathway analysis, and microbe-metabolite correlation.
 \seealso{
 Other advanced-analysis: 
 \code{\link{mod_env_ui}()},
-\code{\link{mod_func_ui}()},
 \code{\link{mod_ml_ui}()},
 \code{\link{mod_network_ui}()},
 \code{\link{mod_nullmodel_ui}()}

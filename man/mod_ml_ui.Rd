@@ -21,7 +21,6 @@ matrix, ROC/PR curves, and multi-model comparison.
 \seealso{
 Other advanced-analysis: 
 \code{\link{mod_env_ui}()},
-\code{\link{mod_func_ui}()},
 \code{\link{mod_multiomics_ui}()},
 \code{\link{mod_network_ui}()},
 \code{\link{mod_nullmodel_ui}()}

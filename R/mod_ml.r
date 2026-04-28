@@ -48,7 +48,10 @@ mod_ml_ui <- function(id, lang = "zh") {
               column(4, shinyWidgets::materialSwitch(ns("ml_use_all_data"), tr("use_all_data (无分割)", "use_all_data (no split)"),
                 value = FALSE, status = "info")),
               column(4)
-            )
+            ),
+            hr(),
+            fluidRow(column(12, shiny::actionButton(ns("run_ml_split"), tr("\U0001f4ca 执行数据分割", "\U0001f4ca Run Data Split"),
+              icon = icon("play"), class = "btn-primary")))
           ),
           shiny::conditionalPanel(condition = "input.ml_analysis_step == 'preprocess'", ns = ns,
             h4(paste0("cal_preProcess ", tr("参数", "Parameters"))),
@@ -62,7 +65,10 @@ mod_ml_ui <- function(id, lang = "zh") {
               column(3, shinyWidgets::materialSwitch(ns("ml_pre_yj"), tr("yjTrans (Yeo-Johnson变换)", "yjTrans (Yeo-Johnson)"), value = FALSE, status = "info")),
               column(3, shinyWidgets::materialSwitch(ns("ml_pre_range"), "range", value = FALSE, status = "primary")),
               column(6)
-            )
+            ),
+            hr(),
+            fluidRow(column(12, shiny::actionButton(ns("run_ml_preprocess"), tr("\U0001f4ca 执行预处理", "\U0001f4ca Run Preprocess"),
+              icon = icon("play"), class = "btn-primary")))
           ),
           shiny::conditionalPanel(condition = "input.ml_analysis_step == 'feature'", ns = ns,
             h4(paste0("cal_feature_sel (Boruta) ", tr("参数", "Parameters"))),
@@ -74,9 +80,12 @@ mod_ml_ui <- function(id, lang = "zh") {
               column(3, shiny::numericInput(ns("ml_boruta_rep"), "boruta.repetitions",
                 value = 4, min = 1, max = 10)),
               column(3)
-            )
+            ),
+            hr(),
+            fluidRow(column(12, shiny::actionButton(ns("run_ml_feature"), tr("\U0001f4ca 执行特征选择", "\U0001f4ca Run Feature Selection"),
+              icon = icon("play"), class = "btn-primary")))
           ),
-          shiny::conditionalPanel(condition = "input.ml_analysis_step == 'train' || input.ml_analysis_step == 'predict'", ns = ns,
+          shiny::conditionalPanel(condition = "input.ml_analysis_step == 'train'", ns = ns,
             h4(paste0("set_trainControl ", tr("参数", "Parameters"))),
             fluidRow(
               column(3, shiny::selectInput(ns("ml_tc_method"), "method",
@@ -125,6 +134,37 @@ mod_ml_ui <- function(id, lang = "zh") {
               column(2, shinyWidgets::materialSwitch(ns("ml_imp_coord_flip"), "coord_flip",
                 value = TRUE, status = "success")),
               column(2)
+            ),
+            hr(),
+            h4(tr("图片保存与下载", "Save & Download Plot")),
+            fluidRow(
+              column(3, shiny::selectInput(ns("ml_train_image_format"), tr("格式", "Format"),
+                choices = c("PNG" = "png", "PDF" = "pdf", "SVG" = "svg", "TIFF" = "tiff"), selected = "png")),
+              column(1, shiny::numericInput(ns("ml_train_save_width"), tr("宽", "Width"), value = 10, min = 4, max = 20)),
+              column(1, shiny::numericInput(ns("ml_train_save_height"), tr("高", "Height"), value = 8, min = 4, max = 15)),
+              column(2, shiny::numericInput(ns("ml_train_save_dpi"), "DPI", value = 300, min = 72, max = 600, step = 72)),
+              column(2, shiny::actionButton(ns("ml_train_save_plot_btn"), tr("\U0001f4e5保存图片", "\U0001f4e5Save Plot"),
+                icon = icon("save"), class = "btn-outline-secondary", width = "100%")),
+              column(3)
+            ),
+            fluidRow(column(12, shiny::actionButton(ns("run_ml_train"), tr("\U0001f4ca 训练模型", "\U0001f4ca Train Model"),
+              icon = icon("play"), class = "btn-primary"))),
+            fluidRow(
+              column(12, bs4Dash::box(title = tr("\U0001f4ca 结果表", "\U0001f4ca Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
+                DT::dataTableOutput(ns("ml_train_table"))
+              ))
+            ),
+            fluidRow(
+              column(2, shiny::selectInput(ns("ml_train_table_format"), tr("表格", "Table"),
+                choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
+              column(2, downloadButton(ns("ml_download_table_train"), tr("\U0001f4e5保存表格", "\U0001f4e5Save Table"),
+                class = "btn-outline-info", width = "100%")),
+              column(8)
+            ),
+            fluidRow(
+              column(12, bs4Dash::box(title = tr("\U0001f4ca 图区", "\U0001f4ca Plot Area"), status = "info", solidHeader = TRUE, width = NULL,
+                shinycssloaders::withSpinner(shiny::plotOutput(ns("ml_train_plot"), height = "550px"))
+              ))
             )
           ),
           shiny::conditionalPanel(condition = "input.ml_analysis_step == 'predict'", ns = ns,
@@ -167,6 +207,37 @@ mod_ml_ui <- function(id, lang = "zh") {
               column(2, shiny::selectInput(ns("ml_roc_line_type"), "line_type",
                 choices = c("solid" = 1, "dashed" = 2, "dotted" = 3), selected = "1")),
               column(6)
+            ),
+            hr(),
+            h4(tr("图片保存与下载", "Save & Download Plot")),
+            fluidRow(
+              column(3, shiny::selectInput(ns("ml_predict_image_format"), tr("格式", "Format"),
+                choices = c("PNG" = "png", "PDF" = "pdf", "SVG" = "svg", "TIFF" = "tiff"), selected = "png")),
+              column(1, shiny::numericInput(ns("ml_predict_save_width"), tr("宽", "Width"), value = 10, min = 4, max = 20)),
+              column(1, shiny::numericInput(ns("ml_predict_save_height"), tr("高", "Height"), value = 8, min = 4, max = 15)),
+              column(2, shiny::numericInput(ns("ml_predict_save_dpi"), "DPI", value = 300, min = 72, max = 600, step = 72)),
+              column(2, shiny::actionButton(ns("ml_predict_save_plot_btn"), tr("\U0001f4e5保存图片", "\U0001f4e5Save Plot"),
+                icon = icon("save"), class = "btn-outline-secondary", width = "100%")),
+              column(3)
+            ),
+            fluidRow(column(12, shiny::actionButton(ns("run_ml_predict"), tr("\U0001f4ca 预测与评估", "\U0001f4ca Predict & Evaluate"),
+              icon = icon("play"), class = "btn-primary"))),
+            fluidRow(
+              column(12, bs4Dash::box(title = tr("\U0001f4ca 结果表", "\U0001f4ca Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
+                DT::dataTableOutput(ns("ml_predict_table"))
+              ))
+            ),
+            fluidRow(
+              column(2, shiny::selectInput(ns("ml_predict_table_format"), tr("表格", "Table"),
+                choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
+              column(2, downloadButton(ns("ml_download_table_predict"), tr("\U0001f4e5保存表格", "\U0001f4e5Save Table"),
+                class = "btn-outline-info", width = "100%")),
+              column(8)
+            ),
+            fluidRow(
+              column(12, bs4Dash::box(title = tr("\U0001f4ca 图区", "\U0001f4ca Plot Area"), status = "info", solidHeader = TRUE, width = NULL,
+                shinycssloaders::withSpinner(shiny::plotOutput(ns("ml_predict_plot"), height = "550px"))
+              ))
             )
           ),
           shiny::conditionalPanel(condition = "input.ml_analysis_step == 'caretlist'", ns = ns,
@@ -181,47 +252,39 @@ mod_ml_ui <- function(id, lang = "zh") {
                 choices = c("Dark2", "Set1", "Set2", "Set3", "Paired", "Spectral", "Viridis"),
                 selected = "Dark2")),
               column(4)
+            ),
+            hr(),
+            h4(tr("图片保存与下载", "Save & Download Plot")),
+            fluidRow(
+              column(3, shiny::selectInput(ns("ml_caretlist_image_format"), tr("格式", "Format"),
+                choices = c("PNG" = "png", "PDF" = "pdf", "SVG" = "svg", "TIFF" = "tiff"), selected = "png")),
+              column(1, shiny::numericInput(ns("ml_caretlist_save_width"), tr("宽", "Width"), value = 10, min = 4, max = 20)),
+              column(1, shiny::numericInput(ns("ml_caretlist_save_height"), tr("高", "Height"), value = 8, min = 4, max = 15)),
+              column(2, shiny::numericInput(ns("ml_caretlist_save_dpi"), "DPI", value = 300, min = 72, max = 600, step = 72)),
+              column(2, shiny::actionButton(ns("ml_caretlist_save_plot_btn"), tr("\U0001f4e5保存图片", "\U0001f4e5Save Plot"),
+                icon = icon("save"), class = "btn-outline-secondary", width = "100%")),
+              column(3)
+            ),
+            fluidRow(column(12, shiny::actionButton(ns("run_ml_caretlist"), tr("\U0001f4ca 多模型比较", "\U0001f4ca Multi-model Comparison"),
+              icon = icon("play"), class = "btn-primary"))),
+            fluidRow(
+              column(12, bs4Dash::box(title = tr("\U0001f4ca 结果表", "\U0001f4ca Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
+                DT::dataTableOutput(ns("ml_caretlist_table"))
+              ))
+            ),
+            fluidRow(
+              column(2, shiny::selectInput(ns("ml_caretlist_table_format"), tr("表格", "Table"),
+                choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
+              column(2, downloadButton(ns("ml_download_table_caretlist"), tr("\U0001f4e5保存表格", "\U0001f4e5Save Table"),
+                class = "btn-outline-info", width = "100%")),
+              column(8)
+            ),
+            fluidRow(
+              column(12, bs4Dash::box(title = tr("\U0001f4ca 图区", "\U0001f4ca Plot Area"), status = "info", solidHeader = TRUE, width = NULL,
+                shinycssloaders::withSpinner(shiny::plotOutput(ns("ml_caretlist_plot"), height = "550px"))
+              ))
             )
-          ),
-          hr(),
-          h4(tr("图片保存与下载", "Save & Download Plot")),
-          fluidRow(
-            column(2, shiny::actionButton(ns("run_ml"), tr("\U0001f4ca 执行", "\U0001f4ca Run"),
-              icon = icon("play"), class = "btn-primary", width = "100%")),
-            column(2, shiny::selectInput(ns("ml_image_format"), tr("格式", "Format"),
-              choices = c("PNG" = "png", "PDF" = "pdf", "SVG" = "svg", "TIFF" = "tiff"), selected = "png")),
-            column(1, shiny::numericInput(ns("ml_save_width"), tr("宽", "Width"), value = 10, min = 4, max = 20)),
-            column(1, shiny::numericInput(ns("ml_save_height"), tr("高", "Height"), value = 8, min = 4, max = 15)),
-            column(2, shiny::numericInput(ns("ml_save_dpi"), "DPI", value = 300, min = 72, max = 600, step = 72)),
-            column(2, shiny::actionButton(ns("ml_save_plot_btn"), tr("\U0001f4e5保存图片", "\U0001f4e5Save Plot"),
-              icon = icon("save"), class = "btn-outline-secondary", width = "100%"))
-          ),
-          fluidRow(
-            column(2, shiny::selectInput(ns("ml_table_download_type"), tr("下载类型", "Download Type"),
-              choices = setNames(c("metrics", "feature", "confusion", "caretlist"),
-                                 c(tr("评估指标", "Metrics"), tr("特征重要性", "Feature Importance"),
-                                   tr("混淆矩阵", "Confusion Matrix"), tr("模型比较", "Model Comparison"))),
-              selected = "metrics")),
-            column(2, shiny::selectInput(ns("ml_table_format"), tr("表格", "Table"),
-              choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
-            column(2, shiny::downloadButton(ns("ml_download_table"), tr("\U0001f4e5表格下载", "\U0001f4e5Download Table"),
-              class = "btn-outline-info", width = "100%")),
-            column(6)
           )
-        )
-      )
-    ),
-    fluidRow(
-      column(12,
-        bs4Dash::box(title = tr("\U0001f4ca 图区", "\U0001f4ca Plot Area"), status = "info", solidHeader = TRUE, width = NULL,
-          shinycssloaders::withSpinner(shiny::plotOutput(ns("ml_plot"), height = "550px"))
-        )
-      )
-    ),
-    fluidRow(
-      column(12,
-        bs4Dash::box(title = tr("\U0001f4ca 结果表", "\U0001f4ca Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
-          DT::dataTableOutput(ns("ml_table"))
         )
       )
     )
@@ -232,11 +295,14 @@ mod_ml_server <- function(id, rv) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     local_rv <- reactiveValues(
-      plot = NULL,
-      data_result = NULL,
+      plot_train = NULL,
+      plot_predict = NULL,
+      plot_caretlist = NULL,
+      data_train = NULL,
+      data_predict = NULL,
+      data_caretlist = NULL,
       save_dir = NULL,
       result_obj = NULL,
-      table_type = "metrics",
       step_completed = list(split = FALSE, preprocess = FALSE, feature = FALSE,
                             train = FALSE, predict = FALSE, caretlist = FALSE)
     )
@@ -258,11 +324,7 @@ mod_ml_server <- function(id, rv) {
       }
     })
 
-    observeEvent(input$ml_save_plot_btn, {
-      default_name <- paste0("ml_", input$ml_analysis_step, ".", input$ml_image_format)
-      current_dir <- isolate(local_rv$save_dir)
-      dir_display <- if (!is.null(current_dir) && nchar(current_dir) > 0) current_dir else ""
-
+    build_save_modal <- function(default_name, dir_display, image_format, save_width, save_height, save_dpi) {
       showModal(modalDialog(
         title = "\U0001f4be \u4fdd\u5b58\u56fe\u7247",
         size = "m",
@@ -293,10 +355,10 @@ mod_ml_server <- function(id, rv) {
           column(6, tags$div(style = "padding-top: 28px;",
             tags$p(class = "text-muted", style = "margin-bottom: 0;",
               tags$span(icon("info-circle")), " \u683c\u5f0f: ",
-              tags$code(toupper(input$ml_image_format)),
+              tags$code(toupper(image_format)),
               " | \u5bbd\u00d7\u9ad8: ",
-              tags$code(paste0(input$ml_save_width, "\u00d7", input$ml_save_height)),
-              " | DPI: ", tags$code(input$ml_save_dpi))
+              tags$code(paste0(save_width, "\u00d7", save_height)),
+              " | DPI: ", tags$code(save_dpi))
           ))
         ),
         footer = tagList(
@@ -305,10 +367,38 @@ mod_ml_server <- function(id, rv) {
           shiny::modalButton("\u53d6\u6d88")
         )
       ))
+    }
+
+    observeEvent(input$ml_train_save_plot_btn, {
+      req(local_rv$plot_train)
+      current_dir <- isolate(local_rv$save_dir)
+      dir_display <- if (!is.null(current_dir) && nchar(current_dir) > 0) current_dir else ""
+      build_save_modal("ml_train.png", dir_display,
+        input$ml_train_image_format, input$ml_train_save_width,
+        input$ml_train_save_height, input$ml_train_save_dpi)
+    })
+
+    observeEvent(input$ml_predict_save_plot_btn, {
+      req(local_rv$plot_predict)
+      current_dir <- isolate(local_rv$save_dir)
+      dir_display <- if (!is.null(current_dir) && nchar(current_dir) > 0) current_dir else ""
+      build_save_modal("ml_predict.png", dir_display,
+        input$ml_predict_image_format, input$ml_predict_save_width,
+        input$ml_predict_save_height, input$ml_predict_save_dpi)
+    })
+
+    observeEvent(input$ml_caretlist_save_plot_btn, {
+      req(local_rv$plot_caretlist)
+      current_dir <- isolate(local_rv$save_dir)
+      dir_display <- if (!is.null(current_dir) && nchar(current_dir) > 0) current_dir else ""
+      build_save_modal("ml_caretlist.png", dir_display,
+        input$ml_caretlist_image_format, input$ml_caretlist_save_width,
+        input$ml_caretlist_save_height, input$ml_caretlist_save_dpi)
     })
 
     observeEvent(input$ml_confirm_save, {
-      req(local_rv$plot)
+      req(local_rv$plot_train, local_rv$plot_predict, local_rv$plot_caretlist)
+      
       save_dir <- local_rv$save_dir
       if (is.null(save_dir) || !isTRUE(nchar(save_dir) > 0)) {
         showNotification("\u8bf7\u5148\u9009\u62e9\u4fdd\u5b58\u6587\u4ef6\u5939", type = "warning")
@@ -316,13 +406,31 @@ mod_ml_server <- function(id, rv) {
       }
       fname <- input$ml_save_filename
       if (is.null(fname) || !isTRUE(nzchar(trimws(fname)))) {
-        fname <- paste0("ml_", input$ml_analysis_step)
+        showNotification("\u8bf7\u8f93\u5165\u6587\u4ef6\u540d", type = "warning")
+        return()
       }
       fname <- trimws(fname)
-      ext <- input$ml_image_format
-      if (!grepl(paste0("\\.", ext, "$"), fname, ignore.case = TRUE)) {
+
+      current_plot <- if (!is.null(local_rv$plot_train) && inherits(local_rv$plot_train, "ggplot")) {
+        list(plot = local_rv$plot_train, ext = input$ml_train_image_format %||% "png",
+             width = input$ml_train_save_width %||% 10, height = input$ml_train_save_height %||% 8,
+             dpi = input$ml_train_save_dpi %||% 300)
+      } else if (!is.null(local_rv$plot_predict) && inherits(local_rv$plot_predict, "ggplot")) {
+        list(plot = local_rv$plot_predict, ext = input$ml_predict_image_format %||% "png",
+             width = input$ml_predict_save_width %||% 10, height = input$ml_predict_save_height %||% 8,
+             dpi = input$ml_predict_save_dpi %||% 300)
+      } else if (!is.null(local_rv$plot_caretlist) && inherits(local_rv$plot_caretlist, "ggplot")) {
+        list(plot = local_rv$plot_caretlist, ext = input$ml_caretlist_image_format %||% "png",
+             width = input$ml_caretlist_save_width %||% 10, height = input$ml_caretlist_save_height %||% 8,
+             dpi = input$ml_caretlist_save_dpi %||% 300)
+      } else {
+        showNotification("\u6ca1\u6709\u53ef\u4fdd\u5b58\u7684\u56fe\u5f62", type = "warning")
+        return()
+      }
+
+      if (!grepl(paste0("\\.", current_plot$ext, "$"), fname, ignore.case = TRUE)) {
         fname <- sub("\\.(png|pdf|svg|tiff|tif)$", "", fname, ignore.case = TRUE)
-        fname <- paste0(fname, ".", ext)
+        fname <- paste0(fname, ".", current_plot$ext)
       }
       if (!dir.exists(save_dir)) {
         showNotification("\u6587\u4ef6\u5939\u4e0d\u5b58\u5728\uff0c\u8bf7\u91cd\u65b0\u9009\u62e9", type = "error")
@@ -331,9 +439,9 @@ mod_ml_server <- function(id, rv) {
       full_path <- file.path(save_dir, fname)
 
       tryCatch({
-        ggplot2::ggsave(filename = full_path, plot = local_rv$plot,
-          width = input$ml_save_width, height = input$ml_save_height,
-          units = "in", dpi = input$ml_save_dpi, scale = 1)
+        ggplot2::ggsave(filename = full_path, plot = current_plot$plot,
+          width = current_plot$width, height = current_plot$height,
+          units = "in", dpi = current_plot$dpi, scale = 1)
         removeModal()
         showNotification(paste0("\u2705 \u5df2\u4fdd\u5b58\u81f3: ", full_path), type = "message", duration = 5)
       }, error = function(e) {
@@ -341,39 +449,177 @@ mod_ml_server <- function(id, rv) {
       })
     })
 
-    observe({
+    observeEvent(input$run_ml_split, {
       if (!check_microtable(rv)) {
-        updateSelectInput(session, "ml_group", choices = character(0))
-        updateSelectInput(session, "ml_positive_class", choices = character(0))
+        showNotification("\u8bf7\u5148\u5bfc\u5165\u6570\u636e", type = "error")
         return()
       }
-      cols <- get_sample_cols(rv)
-      updateSelectInput(session, "ml_group", choices = cols)
+      if (!isTRUE(nzchar(input$ml_group))) {
+        showNotification("\u8bf7\u9009\u62e9\u76ee\u6807\u53d8\u91cf", type = "warning")
+        return()
+      }
+
+      result <- tryCatch({
+        dataset_name <- rv$microtable_name %||% "tmp_microtable"
+        init_code <- paste0(
+          "t_cl <- microeco::trans_classifier$new(\n",
+          "  dataset = ", dataset_name, ",\n",
+          "  y.response = \"", input$ml_group, "\",\n",
+          "  x.predictors = \"", input$ml_x_predictors, "\",\n",
+          "  n.cores = ", input$ml_n_cores, "\n",
+          ")\n"
+        )
+
+        if (is.null(rv$classifier_obj)) {
+          t_cl <- microeco::trans_classifier$new(
+            dataset = rv$microtable,
+            y.response = input$ml_group,
+            x.predictors = input$ml_x_predictors,
+            n.cores = input$ml_n_cores
+          )
+        } else {
+          t_cl <- rv$classifier_obj
+        }
+
+        if (!input$ml_use_all_data) {
+          t_cl$cal_split(prop.train = input$ml_prop_train)
+          split_code <- paste0("t_cl$cal_split(prop.train = ", input$ml_prop_train, ")\n")
+        } else {
+          message("使用全部数据进行训练，不执行数据分割")
+          split_code <- "# 使用全部数据进行训练\n# t_cl$cal_split() 未执行\n"
+        }
+
+        rv$classifier_obj <- t_cl
+        local_rv$step_completed$split <- TRUE
+
+        code <- paste0(init_code, "# 1. 数据分割\n", split_code)
+        list(success = TRUE, result_obj = t_cl, code = code, step = "split")
+      }, error = function(e) list(success = FALSE, error = conditionMessage(e)))
+
+      if (!isTRUE(result$success)) {
+        showNotification(result$error, type = "error", duration = 10)
+        return()
+      }
+
+      append_code(rv, result$code, paste0("\u673a\u5668\u5b66\u4e60 - ", result$step))
+      local_rv$result_obj <- result$result_obj
+      showNotification("\u5b8c\u6210", type = "message")
     })
 
-    observe({
-      if (!check_microtable(rv)) return()
-      if (!isTRUE(nzchar(input$ml_group))) return()
-      col_data <- rv$microtable$sample_table[, input$ml_group]
-      if (is.numeric(col_data)) {
-        updateSelectInput(session, "ml_positive_class", choices = character(0))
-      } else {
-        vals <- unique(col_data)
-        updateSelectInput(session, "ml_positive_class", choices = c("\u81ea\u52a8" = "", vals))
+    observeEvent(input$run_ml_preprocess, {
+      if (!check_microtable(rv)) {
+        showNotification("\u8bf7\u5148\u5bfc\u5165\u6570\u636e", type = "error")
+        return()
       }
+      if (is.null(rv$classifier_obj)) {
+        showNotification("\u8bf7\u5148\u6267\u884c\u6570\u636e\u5206\u5272", type = "warning")
+        return()
+      }
+
+      result <- tryCatch({
+        dataset_name <- rv$microtable_name %||% "tmp_microtable"
+        init_code <- paste0(
+          "t_cl <- microeco::trans_classifier$new(\n",
+          "  dataset = ", dataset_name, ",\n",
+          "  y.response = \"", input$ml_group, "\",\n",
+          "  x.predictors = \"", input$ml_x_predictors, "\",\n",
+          "  n.cores = ", input$ml_n_cores, "\n",
+          ")\n"
+        )
+        t_cl <- rv$classifier_obj
+
+        preprocess_methods <- c()
+        if (input$ml_pre_center) preprocess_methods <- c(preprocess_methods, "center")
+        if (input$ml_pre_scale) preprocess_methods <- c(preprocess_methods, "scale")
+        if (input$ml_pre_nzv) preprocess_methods <- c(preprocess_methods, "nzv")
+        if (input$ml_pre_pca) preprocess_methods <- c(preprocess_methods, "pca")
+        if (input$ml_pre_yj) preprocess_methods <- c(preprocess_methods, "YeoJohnson")
+        if (input$ml_pre_range) preprocess_methods <- c(preprocess_methods, "range")
+
+        if (length(preprocess_methods) == 0) {
+          showNotification("\u8bf7\u81f3\u5c11\u9009\u62e9\u4e00\u79cd\u9884\u5904\u7406\u65b9\u6cd5", type = "warning")
+          return()
+        }
+
+        t_cl$cal_preProcess(method = preprocess_methods)
+        rv$classifier_obj <- t_cl
+        local_rv$step_completed$preprocess <- TRUE
+
+        preprocess_code <- paste0(
+          "t_cl$cal_preProcess(method = c(\"", paste(preprocess_methods, collapse = "\", \""), "\"))\n"
+        )
+        code <- paste0(init_code, "# 2. \u9884\u5904\u7406\n", preprocess_code)
+        list(success = TRUE, result_obj = t_cl, code = code, step = "preprocess")
+      }, error = function(e) list(success = FALSE, error = conditionMessage(e)))
+
+      if (!is.null(result) && !isTRUE(result$success)) {
+        showNotification(result$error, type = "error", duration = 10)
+        return()
+      }
+      if (is.null(result)) return()
+
+      append_code(rv, result$code, paste0("\u673a\u5668\u5b66\u4e60 - ", result$step))
+      local_rv$result_obj <- result$result_obj
+      showNotification("\u5b8c\u6210", type = "message")
+    })
+
+    observeEvent(input$run_ml_feature, {
+      if (!check_microtable(rv)) {
+        showNotification("\u8bf7\u5148\u5bfc\u5165\u6570\u636e", type = "error")
+        return()
+      }
+      if (is.null(rv$classifier_obj)) {
+        showNotification("\u8bf7\u5148\u6267\u884c\u6570\u636e\u5206\u5272", type = "warning")
+        return()
+      }
+
+      result <- tryCatch({
+        dataset_name <- rv$microtable_name %||% "tmp_microtable"
+        init_code <- paste0(
+          "t_cl <- microeco::trans_classifier$new(\n",
+          "  dataset = ", dataset_name, ",\n",
+          "  y.response = \"", input$ml_group, "\",\n",
+          "  x.predictors = \"", input$ml_x_predictors, "\",\n",
+          "  n.cores = ", input$ml_n_cores, "\n",
+          ")\n"
+        )
+        t_cl <- rv$classifier_obj
+
+        t_cl$cal_feature_sel(
+          boruta.maxRuns = input$ml_boruta_maxRuns,
+          boruta.pValue = input$ml_boruta_pValue,
+          boruta.repetitions = input$ml_boruta_rep
+        )
+        rv$classifier_obj <- t_cl
+        local_rv$step_completed$feature <- TRUE
+
+        feature_code <- paste0(
+          "t_cl$cal_feature_sel(\n",
+          "  boruta.maxRuns = ", input$ml_boruta_maxRuns, ",\n",
+          "  boruta.pValue = ", input$ml_boruta_pValue, ",\n",
+          "  boruta.repetitions = ", input$ml_boruta_rep, "\n",
+          ")\n"
+        )
+        code <- paste0(init_code, "# 3. \u7279\u5f81\u9009\u62e9\n", feature_code)
+        list(success = TRUE, result_obj = t_cl, code = code, step = "feature")
+      }, error = function(e) list(success = FALSE, error = conditionMessage(e)))
+
+      if (!isTRUE(result$success)) {
+        showNotification(result$error, type = "error", duration = 10)
+        return()
+      }
+
+      append_code(rv, result$code, paste0("\u673a\u5668\u5b66\u4e60 - ", result$step))
+      local_rv$result_obj <- result$result_obj
+      showNotification("\u5b8c\u6210", type = "message")
     })
 
     get_color_palette <- function(name, n = 8) {
       tryCatch({
         max_colors <- switch(name,
-          "Dark2"    = 8,
-          "Set1"     = 8,
-          "Set2"     = 8,
-          "Set3"     = 12,
-          "Paired"   = 12,
-          "Spectral" = 11,
-          "Viridis"  = Inf,
-          8
+          "Dark2"    = 8, "Set1"     = 8, "Set2"     = 8,
+          "Set3"     = 12, "Paired"   = 12, "Spectral" = 11,
+          "Viridis"  = Inf, 8
         )
         use_n <- min(n, max_colors)
         switch(name,
@@ -389,126 +635,38 @@ mod_ml_server <- function(id, rv) {
       }, error = function(e) RColorBrewer::brewer.pal(8, "Dark2"))
     }
 
-    observeEvent(input$run_ml, {
+    observeEvent(input$run_ml_train, {
       if (!check_microtable(rv)) {
         showNotification("\u8bf7\u5148\u5bfc\u5165\u6570\u636e", type = "error")
         return()
       }
-
       if (!isTRUE(nzchar(input$ml_group))) {
         showNotification("\u8bf7\u9009\u62e9\u76ee\u6807\u53d8\u91cf", type = "warning")
         return()
       }
+      if (is.null(rv$classifier_obj)) {
+        showNotification("\u8bf7\u5148\u6267\u884c\u6570\u636e\u5206\u5272", type = "warning")
+        return()
+      }
 
-      step <- input$ml_analysis_step
-      result <- tryCatch({
-        dataset_name <- rv$microtable_name %||% "tmp_microtable"
+      result <- shiny::withProgress(
+        message = "模型训练中...",
+        value = 0,
+        {
+          shiny::incProgress(0.1, detail = "设置训练参数...")
 
-        init_code <- paste0(
-          "t_cl <- microeco::trans_classifier$new(\n",
-          "  dataset = ", dataset_name, ",\n",
-          "  y.response = \"", input$ml_group, "\",\n",
-          "  x.predictors = \"", input$ml_x_predictors, "\",\n",
-          "  n.cores = ", input$ml_n_cores, "\n",
-          ")\n"
-        )
-
-        if (step == "split") {
-          if (is.null(rv$classifier_obj)) {
-            t_cl <- microeco::trans_classifier$new(
-              dataset = rv$microtable,
-              y.response = input$ml_group,
-              x.predictors = input$ml_x_predictors,
-              n.cores = input$ml_n_cores
-            )
-          } else {
-            t_cl <- rv$classifier_obj
-          }
-
-          if (!input$ml_use_all_data) {
-            t_cl$cal_split(prop.train = input$ml_prop_train)
-            split_code <- paste0(
-              "t_cl$cal_split(prop.train = ", input$ml_prop_train, ")\n"
-            )
-          } else {
-            message("使用全部数据进行训练，不执行数据分割")
-            split_code <- "# 使用全部数据进行训练\n# t_cl$cal_split() 未执行\n"
-          }
-          
-          rv$classifier_obj <- t_cl
-          local_rv$step_completed$split <- TRUE
-
-          code <- paste0(init_code, "# 1. 数据分割\n", split_code)
-
-          list(success = TRUE, plot = NULL, data_result = NULL,
-               result_obj = t_cl, code = code, step = "split")
-
-        } else if (step == "preprocess") {
-          if (is.null(rv$classifier_obj)) {
-            showNotification("\u8bf7\u5148\u6267\u884c\u6570\u636e\u5206\u5272", type = "warning")
-            return()
-          }
-          t_cl <- rv$classifier_obj
-
-          preprocess_methods <- c()
-          if (input$ml_pre_center) preprocess_methods <- c(preprocess_methods, "center")
-          if (input$ml_pre_scale) preprocess_methods <- c(preprocess_methods, "scale")
-          if (input$ml_pre_nzv) preprocess_methods <- c(preprocess_methods, "nzv")
-          if (input$ml_pre_pca) preprocess_methods <- c(preprocess_methods, "pca")
-          if (input$ml_pre_yj) preprocess_methods <- c(preprocess_methods, "YeoJohnson")
-          if (input$ml_pre_range) preprocess_methods <- c(preprocess_methods, "range")
-
-          if (length(preprocess_methods) == 0) {
-            showNotification("\u8bf7\u81f3\u5c11\u9009\u62e9\u4e00\u79cd\u9884\u5904\u7406\u65b9\u6cd5", type = "warning")
-            return()
-          }
-
-          t_cl$cal_preProcess(method = preprocess_methods)
-          rv$classifier_obj <- t_cl
-          local_rv$step_completed$preprocess <- TRUE
-
-          preprocess_code <- paste0(
-            "t_cl$cal_preProcess(method = c(\"", paste(preprocess_methods, collapse = "\", \""), "\"))\n"
-          )
-          code <- paste0(init_code, "# 2. \u9884\u5904\u7406\n", preprocess_code)
-
-          list(success = TRUE, plot = NULL, data_result = NULL,
-               result_obj = t_cl, code = code, step = "preprocess")
-
-        } else if (step == "feature") {
-          if (is.null(rv$classifier_obj)) {
-            showNotification("\u8bf7\u5148\u6267\u884c\u6570\u636e\u5206\u5272", type = "warning")
-            return()
-          }
-          t_cl <- rv$classifier_obj
-
-          t_cl$cal_feature_sel(
-            boruta.maxRuns = input$ml_boruta_maxRuns,
-            boruta.pValue = input$ml_boruta_pValue,
-            boruta.repetitions = input$ml_boruta_rep
-          )
-          rv$classifier_obj <- t_cl
-          local_rv$step_completed$feature <- TRUE
-
-          feature_code <- paste0(
-            "t_cl$cal_feature_sel(\n",
-            "  boruta.maxRuns = ", input$ml_boruta_maxRuns, ",\n",
-            "  boruta.pValue = ", input$ml_boruta_pValue, ",\n",
-            "  boruta.repetitions = ", input$ml_boruta_rep, "\n",
+          dataset_name <- rv$microtable_name %||% "tmp_microtable"
+          init_code <- paste0(
+            "t_cl <- microeco::trans_classifier$new(\n",
+            "  dataset = ", dataset_name, ",\n",
+            "  y.response = \"", input$ml_group, "\",\n",
+            "  x.predictors = \"", input$ml_x_predictors, "\",\n",
+            "  n.cores = ", input$ml_n_cores, "\n",
             ")\n"
           )
-          code <- paste0(init_code, "# 3. \u7279\u5f81\u9009\u62e9\n", feature_code)
-
-          list(success = TRUE, plot = NULL, data_result = NULL,
-               result_obj = t_cl, code = code, step = "feature")
-
-        } else if (step == "train") {
-          if (is.null(rv$classifier_obj)) {
-            showNotification("\u8bf7\u5148\u6267\u884c\u6570\u636e\u5206\u5272", type = "warning")
-            return()
-          }
           t_cl <- rv$classifier_obj
 
+          shiny::incProgress(0.3, detail = "设置交叉验证...")
           t_cl$set_trainControl(
             method = input$ml_tc_method,
             number = input$ml_tc_number,
@@ -517,12 +675,23 @@ mod_ml_server <- function(id, rv) {
             savePredictions = input$ml_tc_savePredictions
           )
 
+          shiny::incProgress(0.2, detail = paste0("训练模型 (", input$ml_train_method, ")..."))
           t_cl$cal_train(method = input$ml_train_method,
             max.mtry = input$ml_max_mtry,
             ntree = input$ml_ntree,
             tuneLength = input$ml_tuneLength)
 
+          shiny::incProgress(0.2, detail = "计算特征重要性...")
           t_cl$cal_feature_imp(rf_feature_sig = input$ml_rf_sig)
+
+          shiny::incProgress(0.1, detail = "生成特征重要性图...")
+          p <- t_cl$plot_feature_imp(
+            rf_sig_show = if (nchar(input$ml_imp_rf_sig_show)) input$ml_imp_rf_sig_show else NULL,
+            show_sig_group = input$ml_imp_show_sig_group,
+            use_number = seq_len(min(input$ml_imp_use_number, nrow(t_cl$res_feature_imp))),
+            coord_flip = input$ml_imp_coord_flip
+          )
+
           rv$classifier_obj <- t_cl
           local_rv$step_completed$train <- TRUE
 
@@ -544,33 +713,99 @@ mod_ml_server <- function(id, rv) {
           )
           code <- paste0(init_code, "# 4. \u8bad\u7ec3\u6a21\u578b\n", train_code)
 
-          p <- t_cl$plot_feature_imp(
-            rf_sig_show = if (nchar(input$ml_imp_rf_sig_show)) input$ml_imp_rf_sig_show else NULL,
-            show_sig_group = input$ml_imp_show_sig_group,
-            use_number = seq_len(min(input$ml_imp_use_number, nrow(t_cl$res_feature_imp))),
-            coord_flip = input$ml_imp_coord_flip
-          )
-
           list(success = TRUE, plot = p, data_result = t_cl$res_train$results,
                result_obj = t_cl, code = code, step = "train")
+        }
+      )
 
-        } else if (step == "predict") {
-          if (is.null(rv$classifier_obj) || is.null(rv$classifier_obj$res_train)) {
-            showNotification("\u8bf7\u5148\u8bad\u7ec3\u6a21\u578b", type = "warning")
-            return()
-          }
+      if (!isTRUE(result$success)) {
+        showNotification(result$error, type = "error", duration = 10)
+        return()
+      }
+
+      append_code(rv, result$code, paste0("\u673a\u5668\u5b66\u4e60 - ", result$step))
+      local_rv$plot_train <- result$plot
+      local_rv$data_train <- result$data_result
+      local_rv$result_obj <- result$result_obj
+      rv$last_plot <- result$plot
+      showNotification("\u5b8c\u6210", type = "message")
+    })
+
+    output$ml_train_plot <- shiny::renderPlot({
+      req(local_rv$plot_train)
+      if (is(local_rv$plot_train, "ggplot")) {
+        print(local_rv$plot_train)
+      } else if (is(local_rv$plot_train, "gtable")) {
+        grid::grid.draw(local_rv$plot_train)
+      } else {
+        print(local_rv$plot_train)
+      }
+    })
+
+    output$ml_train_table <- DT::renderDataTable({
+      req(local_rv$data_train)
+      dt_df <- as.data.frame(local_rv$data_train)
+      DT::datatable(dt_df, options = list(scrollX = TRUE, pageLength = 20),
+        rownames = TRUE, filter = "top")
+    })
+
+    output$ml_download_table_train <- downloadHandler(
+      filename = function() {
+        ext <- ifelse(input$ml_train_table_format == ",", ".csv", ".tsv")
+        paste0("ml_train_results", ext)
+      },
+      content = function(file) {
+        obj <- local_rv$result_obj
+        if (is.null(obj) || !is(obj, "trans_classifier")) return()
+        if (!is.null(obj$res_train$results)) {
+          write.table(as.data.frame(obj$res_train$results), file, sep = input$ml_train_table_format,
+            row.names = TRUE, quote = TRUE)
+        }
+      }
+    )
+
+    observeEvent(input$run_ml_predict, {
+      if (!check_microtable(rv)) {
+        showNotification("\u8bf7\u5148\u5bfc\u5165\u6570\u636e", type = "error")
+        return()
+      }
+      if (is.null(rv$classifier_obj) || is.null(rv$classifier_obj$res_train)) {
+        showNotification("\u8bf7\u5148\u8bad\u7ec3\u6a21\u578b", type = "warning")
+        return()
+      }
+
+      result <- shiny::withProgress(
+        message = "预测与评估中...",
+        value = 0,
+        {
+          shiny::incProgress(0.1, detail = "设置预测参数...")
+
+          dataset_name <- rv$microtable_name %||% "tmp_microtable"
+          init_code <- paste0(
+            "t_cl <- microeco::trans_classifier$new(\n",
+            "  dataset = ", dataset_name, ",\n",
+            "  y.response = \"", input$ml_group, "\",\n",
+            "  x.predictors = \"", input$ml_x_predictors, "\",\n",
+            "  n.cores = ", input$ml_n_cores, "\n",
+            ")\n"
+          )
           t_cl <- rv$classifier_obj
 
           positive_val <- if (nchar(input$ml_positive_class)) input$ml_positive_class else NULL
+
+          shiny::incProgress(0.2, detail = "执行预测...")
           t_cl$cal_predict(positive_class = positive_val)
 
+          shiny::incProgress(0.2, detail = "计算ROC...")
           t_cl$cal_ROC(input = input$ml_roc_input)
 
+          shiny::incProgress(0.2, detail = "生成混淆矩阵图...")
           p1 <- t_cl$plot_confusionMatrix(
             plot_confusion = input$ml_plot_confusion,
             plot_statistics = input$ml_plot_statistics
           )
 
+          shiny::incProgress(0.2, detail = "生成ROC曲线...")
           p2 <- t_cl$plot_ROC(
             plot_type = input$ml_roc_plot_type,
             plot_group = input$ml_roc_plot_group,
@@ -600,18 +835,91 @@ mod_ml_server <- function(id, rv) {
           list(success = TRUE, plot = combined_plot,
                data_result = t_cl$res_confusion_stats,
                result_obj = t_cl, code = code, step = "predict")
+        }
+      )
 
-        } else if (step == "caretlist") {
-          if (is.null(rv$classifier_obj)) {
-            showNotification("\u8bf7\u5148\u6267\u884c\u6570\u636e\u5206\u5272", type = "warning")
-            return()
-          }
+      if (!isTRUE(result$success)) {
+        showNotification(result$error, type = "error", duration = 10)
+        return()
+      }
+
+      append_code(rv, result$code, paste0("\u673a\u5668\u5b66\u4e60 - ", result$step))
+      local_rv$plot_predict <- result$plot
+      local_rv$data_predict <- result$data_result
+      local_rv$result_obj <- result$result_obj
+      rv$last_plot <- result$plot
+      showNotification("\u5b8c\u6210", type = "message")
+    })
+
+    output$ml_predict_plot <- shiny::renderPlot({
+      req(local_rv$plot_predict)
+      if (is(local_rv$plot_predict, "ggplot")) {
+        print(local_rv$plot_predict)
+      } else if (is(local_rv$plot_predict, "gtable")) {
+        grid::grid.draw(local_rv$plot_predict)
+      } else {
+        print(local_rv$plot_predict)
+      }
+    })
+
+    output$ml_predict_table <- DT::renderDataTable({
+      req(local_rv$data_predict)
+      dt_df <- as.data.frame(local_rv$data_predict)
+      DT::datatable(dt_df, options = list(scrollX = TRUE, pageLength = 20),
+        rownames = TRUE, filter = "top")
+    })
+
+    output$ml_download_table_predict <- downloadHandler(
+      filename = function() {
+        ext <- ifelse(input$ml_predict_table_format == ",", ".csv", ".tsv")
+        paste0("ml_confusion_stats", ext)
+      },
+      content = function(file) {
+        obj <- local_rv$result_obj
+        if (is.null(obj) || !is(obj, "trans_classifier")) return()
+        if (!is.null(obj$res_confusion_stats)) {
+          write.table(as.data.frame(obj$res_confusion_stats), file, sep = input$ml_predict_table_format,
+            row.names = TRUE, quote = TRUE)
+        }
+      }
+    )
+
+    observeEvent(input$run_ml_caretlist, {
+      if (!check_microtable(rv)) {
+        showNotification("\u8bf7\u5148\u5bfc\u5165\u6570\u636e", type = "error")
+        return()
+      }
+      if (is.null(rv$classifier_obj)) {
+        showNotification("\u8bf7\u5148\u6267\u884c\u6570\u636e\u5206\u5272", type = "warning")
+        return()
+      }
+
+      result <- shiny::withProgress(
+        message = "多模型比较中...",
+        value = 0,
+        {
+          shiny::incProgress(0.1, detail = "设置模型列表...")
+
+          dataset_name <- rv$microtable_name %||% "tmp_microtable"
+          init_code <- paste0(
+            "t_cl <- microeco::trans_classifier$new(\n",
+            "  dataset = ", dataset_name, ",\n",
+            "  y.response = \"", input$ml_group, "\",\n",
+            "  x.predictors = \"", input$ml_x_predictors, "\",\n",
+            "  n.cores = ", input$ml_n_cores, "\n",
+            ")\n"
+          )
           t_cl <- rv$classifier_obj
 
           methods_vec <- unlist(strsplit(input$ml_caret_methods, ","))
+
+          shiny::incProgress(0.3, detail = "训练多模型...")
           t_cl$cal_caretList(methodList = methods_vec)
+
+          shiny::incProgress(0.3, detail = "计算重采样结果...")
           t_cl$cal_caretList_resamples()
 
+          shiny::incProgress(0.2, detail = "生成比较图...")
           p <- t_cl$plot_caretList_resamples(
             color_values = get_color_palette(input$ml_caret_color)
           )
@@ -629,13 +937,8 @@ mod_ml_server <- function(id, rv) {
           list(success = TRUE, plot = p,
                data_result = t_cl$res_caretList_resamples_reshaped,
                result_obj = t_cl, code = code, step = "caretlist")
-
-        } else {
-          stop("\u672a\u77e5\u5206\u6790\u6b65\u9aa4")
         }
-      }, error = function(e) {
-        list(success = FALSE, error = conditionMessage(e))
-      })
+      )
 
       if (!isTRUE(result$success)) {
         showNotification(result$error, type = "error", duration = 10)
@@ -643,92 +946,66 @@ mod_ml_server <- function(id, rv) {
       }
 
       append_code(rv, result$code, paste0("\u673a\u5668\u5b66\u4e60 - ", result$step))
-      local_rv$plot <- result$plot
-      local_rv$data_result <- result$data_result
+      local_rv$plot_caretlist <- result$plot
+      local_rv$data_caretlist <- result$data_result
       local_rv$result_obj <- result$result_obj
-      local_rv$table_type <- switch(result$step,
-        "train" = "metrics",
-        "predict" = "confusion",
-        "caretlist" = "caretlist",
-        "feature" = "feature",
-        "metrics"
-      )
       rv$last_plot <- result$plot
       showNotification("\u5b8c\u6210", type = "message")
     })
 
-    output$ml_plot <- shiny::renderPlot({
-      req(local_rv$plot)
-      if (is(local_rv$plot, "ggplot")) {
-        print(local_rv$plot)
-      } else if (is(local_rv$plot, "gtable")) {
-        grid::grid.draw(local_rv$plot)
+    output$ml_caretlist_plot <- shiny::renderPlot({
+      req(local_rv$plot_caretlist)
+      if (is(local_rv$plot_caretlist, "ggplot")) {
+        print(local_rv$plot_caretlist)
+      } else if (is(local_rv$plot_caretlist, "gtable")) {
+        grid::grid.draw(local_rv$plot_caretlist)
       } else {
-        print(local_rv$plot)
+        print(local_rv$plot_caretlist)
       }
     })
 
-    output$ml_table <- DT::renderDataTable({
-      obj <- local_rv$result_obj
-      table_type <- local_rv$table_type
-
-      if (is.null(obj) || !is(obj, "trans_classifier")) return(NULL)
-
-      dt <- switch(table_type,
-        "metrics" = {
-          if (!is.null(obj$res_train$results)) obj$res_train$results else NULL
-        },
-        "confusion" = {
-          if (!is.null(obj$res_confusion_stats)) as.data.frame(obj$res_confusion_stats) else NULL
-        },
-        "feature" = {
-          if (!is.null(obj$res_feature_imp)) as.data.frame(obj$res_feature_imp) else NULL
-        },
-        "caretlist" = {
-          if (!is.null(obj$res_caretList_resamples_reshaped)) obj$res_caretList_resamples_reshaped else NULL
-        },
-        NULL
-      )
-
-      if (is.data.frame(dt) || is.matrix(dt)) {
-        dt_df <- as.data.frame(dt)
-        DT::datatable(dt_df, options = list(scrollX = TRUE, pageLength = 20),
-          rownames = FALSE, filter = "top")
-      }
+    output$ml_caretlist_table <- DT::renderDataTable({
+      req(local_rv$data_caretlist)
+      dt_df <- as.data.frame(local_rv$data_caretlist)
+      DT::datatable(dt_df, options = list(scrollX = TRUE, pageLength = 20),
+        rownames = TRUE, filter = "top")
     })
 
-    output$ml_download_table <- downloadHandler(
+    output$ml_download_table_caretlist <- downloadHandler(
       filename = function() {
-        type <- input$ml_table_download_type
-        ext <- ifelse(input$ml_table_format == ",", ".csv", ".tsv")
-        paste0("ml_", type, ext)
+        ext <- ifelse(input$ml_caretlist_table_format == ",", ".csv", ".tsv")
+        paste0("ml_caretlist", ext)
       },
       content = function(file) {
         obj <- local_rv$result_obj
         if (is.null(obj) || !is(obj, "trans_classifier")) return()
-
-        table_type <- input$ml_table_download_type
-        dt <- switch(table_type,
-          "metrics" = {
-            if (!is.null(obj$res_train$results)) obj$res_train$results else NULL
-          },
-          "confusion" = {
-            if (!is.null(obj$res_confusion_stats)) as.data.frame(obj$res_confusion_stats) else NULL
-          },
-          "feature" = {
-            if (!is.null(obj$res_feature_imp)) as.data.frame(obj$res_feature_imp) else NULL
-          },
-          "caretlist" = {
-            if (!is.null(obj$res_caretList_resamples_reshaped)) obj$res_caretList_resamples_reshaped else NULL
-          },
-          NULL
-        )
-
-        if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
-          write.table(as.data.frame(dt), file, sep = input$ml_table_format,
-            row.names = FALSE, quote = TRUE)
+        if (!is.null(obj$res_caretList_resamples_reshaped)) {
+          write.table(as.data.frame(obj$res_caretList_resamples_reshaped), file, sep = input$ml_caretlist_table_format,
+            row.names = TRUE, quote = TRUE)
         }
       }
     )
+
+    observe({
+      if (!check_microtable(rv)) {
+        updateSelectInput(session, "ml_group", choices = character(0))
+        updateSelectInput(session, "ml_positive_class", choices = character(0))
+        return()
+      }
+      cols <- get_sample_cols(rv)
+      updateSelectInput(session, "ml_group", choices = cols)
+    })
+
+    observe({
+      if (!check_microtable(rv)) return()
+      if (!isTRUE(nzchar(input$ml_group))) return()
+      col_data <- rv$microtable$sample_table[, input$ml_group]
+      if (is.numeric(col_data)) {
+        updateSelectInput(session, "ml_positive_class", choices = character(0))
+      } else {
+        vals <- unique(col_data)
+        updateSelectInput(session, "ml_positive_class", choices = c("\u81ea\u52a8" = "", vals))
+      }
+    })
   })
 }

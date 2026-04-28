@@ -22,7 +22,8 @@ Other community-analysis:
 \code{\link{mod_abund_ui}()},
 \code{\link{mod_alpha_ui}()},
 \code{\link{mod_composition_ui}()},
-\code{\link{mod_core_ui}()}
+\code{\link{mod_core_ui}()},
+\code{\link{mod_func_ui}()}
 }
 \concept{community-analysis}
 \keyword{beta}

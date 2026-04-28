@@ -34,7 +34,7 @@ mod_network_ui <- function(id, lang = "zh") {
               choices = c("OTU", "Genus", "Phylum", "Class", "Order", "Family"),
               selected = "OTU")),
             column(2, shiny::numericInput(ns("net_filter_thres"), tr("filter_thres", "filter_thres"),
-              value = 0, min = 0, max = 1, step = 0.0001)),
+              value = 0.0001, min = 0, max = 1, step = 0.0001)),
             column(2, shinyWidgets::materialSwitch(ns("net_add_taxa_name"), "add_taxa_name", value = TRUE, status = "info")),
             column(2, shiny::selectInput(ns("net_taxa_name_level"), "add_taxa_name_level",
               choices = c("Phylum", "Class", "Order", "Family", "Genus"), selected = "Phylum")),
@@ -92,13 +92,14 @@ mod_network_ui <- function(id, lang = "zh") {
           h4(tr("分析类型", "Analysis Type")),
           fluidRow(
             column(12, shiny::radioButtons(ns("net_analysis_type"), tr("分析类型", "Analysis Type"),
-              choices = setNames(c("module", "attr", "nodes", "edges", "eigen", "sumlinks", "save"),
+              choices = setNames(c("module", "attr", "nodes", "edges", "eigen", "sumlinks", "network", "save"),
                                  c(tr("模块划分", "Module Detection"),
                                    tr("网络属性", "Network Attributes"),
                                    tr("节点属性", "Node Attributes"),
                                    tr("边属性", "Edge Attributes"),
                                    tr("特征分析", "Eigen Analysis"),
                                    tr("边连接求和", "Edge Link Sum"),
+                                   tr("网络图", "Network Plot"),
                                    tr("网络保存", "Network Save"))),
               selected = "module", inline = TRUE))
           ),
@@ -124,6 +125,13 @@ mod_network_ui <- function(id, lang = "zh") {
                   DT::dataTableOutput(ns("module_table"))
                 )
               )
+            ),
+            fluidRow(
+              column(2, shiny::selectInput(ns("net_table_format_mod"), tr("表格", "Table"),
+                choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
+              column(2, shiny::downloadButton(ns("net_download_table_mod"), tr("\U0001f4e5表格下载", "\U0001f4e5Download Table"),
+                class = "btn-outline-info", width = "100%")),
+              column(8)
             )
           ),
 
@@ -140,6 +148,13 @@ mod_network_ui <- function(id, lang = "zh") {
                   DT::dataTableOutput(ns("attr_table"))
                 )
               )
+            ),
+            fluidRow(
+              column(2, shiny::selectInput(ns("net_table_format_attr"), tr("表格", "Table"),
+                choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
+              column(2, shiny::downloadButton(ns("net_download_table_attr"), tr("\U0001f4e5表格下载", "\U0001f4e5Download Table"),
+                class = "btn-outline-info", width = "100%")),
+              column(8)
             )
           ),
 
@@ -147,20 +162,13 @@ mod_network_ui <- function(id, lang = "zh") {
           shiny::conditionalPanel(condition = "input.net_analysis_type == 'nodes'", ns = ns,
             h5(tr("节点属性参数", "Node Attributes Parameters")),
             fluidRow(
-              column(12, shiny::actionButton(ns("run_nodes"), tr("\U0001f3c1 开始分析", "\U0001f3c1 Run Analysis"),
+              column(12, shiny::actionButton(ns("run_nodes"), tr("\U0001f3c1 计算表格", "\U0001f3c1 Run Analysis"),
                 icon = icon("play"), class = "btn-success", width = "200px"))
             ),
             fluidRow(
               column(12,
                 bs4Dash::box(title = tr("\U0001f4ca 结果表", "\U0001f4ca Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
                   DT::dataTableOutput(ns("nodes_table"))
-                )
-              )
-            ),
-            fluidRow(
-              column(12,
-                bs4Dash::box(title = tr("\U0001f4ca 图区", "\U0001f4ca Plot Area"), status = "info", solidHeader = TRUE, width = NULL,
-                  shinycssloaders::withSpinner(shiny::plotOutput(ns("nodes_plot"), height = "600px"))
                 )
               )
             ),
@@ -199,6 +207,17 @@ mod_network_ui <- function(id, lang = "zh") {
               column(2, shiny::selectInput(ns("roles_plot_size"), "plot_size",
                 choices = c("Abundance", "degree", "betweenness"), selected = "Abundance"))
             ),
+            fluidRow(
+              column(12, shiny::actionButton(ns("run_nodes_plot"), tr("\U0001f3c1 开始作图", "\U0001f3c1 Run Plot"),
+                icon = icon("play"), class = "btn-success", width = "200px"))
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("\U0001f4ca 图区", "\U0001f4ca Plot Area"), status = "info", solidHeader = TRUE, width = NULL,
+                  shinycssloaders::withSpinner(shiny::plotOutput(ns("nodes_plot"), height = "600px"))
+                )
+              )
+            ),
             hr(),
             h4(tr("图片保存与下载", "Save & Download Plot")),
             fluidRow(
@@ -235,6 +254,13 @@ mod_network_ui <- function(id, lang = "zh") {
                   DT::dataTableOutput(ns("edges_table"))
                 )
               )
+            ),
+            fluidRow(
+              column(2, shiny::selectInput(ns("net_table_format_edges"), tr("表格", "Table"),
+                choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
+              column(2, shiny::downloadButton(ns("net_download_table_edges"), tr("\U0001f4e5表格下载", "\U0001f4e5Download Table"),
+                class = "btn-outline-info", width = "100%")),
+              column(8)
             )
           ),
 
@@ -251,6 +277,13 @@ mod_network_ui <- function(id, lang = "zh") {
                   DT::dataTableOutput(ns("eigen_table"))
                 )
               )
+            ),
+            fluidRow(
+              column(2, shiny::selectInput(ns("net_table_format_eigen"), tr("表格", "Table"),
+                choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
+              column(2, shiny::downloadButton(ns("net_download_table_eigen"), tr("\U0001f4e5表格下载", "\U0001f4e5Download Table"),
+                class = "btn-outline-info", width = "100%")),
+              column(8)
             )
           ),
 
@@ -312,35 +345,65 @@ mod_network_ui <- function(id, lang = "zh") {
             )
           ),
 
-          # 7. 网络保存
+          # 7. 网络图
+          shiny::conditionalPanel(condition = "input.net_analysis_type == 'network'", ns = ns,
+            h5(tr("网络图参数", "Network Plot Parameters")),
+            fluidRow(
+              column(12, shiny::actionButton(ns("run_network_plot"), tr("\U0001f3c1 开始分析", "\U0001f3c1 Run Analysis"),
+                icon = icon("play"), class = "btn-success", width = "200px"))
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("\U0001f4ca 图区", "\U0001f4ca Plot Area"), status = "info", solidHeader = TRUE, width = NULL,
+                  shinycssloaders::withSpinner(shiny::plotOutput(ns("network_plot"), height = "600px"))
+                )
+              )
+            ),
+            hr(),
+            h4(tr("图形参数", "Plot Parameters")),
+            fluidRow(
+              column(3, shiny::selectInput(ns("net_plot_layout"), "layout",
+                choices = c("fr", "kk", "circle", "random", "lgl", "graphopt", "mds", "sugiyama"),
+                selected = "fr")),
+              column(3, shiny::numericInput(ns("net_plot_vertex_size"), "vertex_size", value = 4, min = 1, max = 20)),
+              column(3, shiny::numericInput(ns("net_plot_edge_width"), "edge_width", value = 0.5, min = 0.1, max = 5, step = 0.1)),
+              column(3, shinyWidgets::materialSwitch(ns("net_plot_label"), "show_label", value = FALSE, status = "info"))
+            ),
+            hr(),
+            h4(tr("图片保存与下载", "Save & Download Plot")),
+            fluidRow(
+              column(2, shiny::selectInput(ns("net_image_format_np"), tr("格式", "Format"),
+                choices = c("PNG" = "png", "PDF" = "pdf", "SVG" = "svg", "TIFF" = "tiff"), selected = "png")),
+              column(1, shiny::numericInput(ns("net_save_width_np"), tr("宽 (width)", "Width"), value = 12, min = 4, max = 20)),
+              column(1, shiny::numericInput(ns("net_save_height_np"), tr("高 (height)", "Height"), value = 10, min = 4, max = 15)),
+              column(2, shiny::numericInput(ns("net_save_dpi_np"), "DPI", value = 300, min = 72, max = 600, step = 72)),
+              column(2, shiny::actionButton(ns("net_save_plot_btn_np"), tr("\U0001f4e5保存图片", "\U0001f4e5Save Plot"),
+                icon = icon("save"), class = "btn-outline-secondary", width = "100%"))
+            )
+          ),
+
+          # 8. 网络保存
           shiny::conditionalPanel(condition = "input.net_analysis_type == 'save'", ns = ns,
             h5(tr("网络保存参数", "Network Save Parameters")),
             fluidRow(
+              column(4,
+                shiny::radioButtons(ns("net_save_format_btn"), tr("保存格式", "Save Format"),
+                  choices = c(tr("gexf 格式", "gexf"), tr("igraph RData", "igraph"), tr("trans_network RData", "trans_network")),
+                  selected = "gexf", inline = TRUE)
+              ),
+              column(4,
+                shiny::textInput(ns("net_save_filename"), tr("文件名", "Filename"),
+                  value = "network", placeholder = "\u6587\u4ef6\u540d\u79f0...")
+              ),
+              column(4,
+                shiny::selectInput(ns("net_save_dir_text"), tr("\U0001f4c1 保存位置", "Save Location"),
+                  choices = c("Desktop", "Documents", "Home"), selected = "Desktop")
+              )
+            ),
+            fluidRow(
               column(12,
-                bs4Dash::box(title = tr("\U0001f4ca 保存选项", "Save Options"), status = "secondary", solidHeader = TRUE, width = NULL,
-                  fluidRow(
-                    column(4,
-                      shiny::selectInput(ns("net_save_format"), tr("保存格式", "Save Format"),
-                        choices = setNames(c("gexf", "igraph", "trans_network"),
-                                           c("GEFX (igraph)", "igraph 对象 (RData)", "trans_network 对象 (RData)")),
-                        selected = "gexf")
-                    ),
-                    column(4,
-                      shiny::textInput(ns("net_save_filename"), tr("文件名", "Filename"),
-                        value = "network", placeholder = "\u6587\u4ef6\u540d\u79f0...")
-                    ),
-                    column(4,
-                      shiny::selectInput(ns("net_save_dir_text"), tr("\U0001f4c1 保存位置", "Save Location"),
-                        choices = c("Desktop", "Documents", "Home"), selected = "Desktop")
-                    )
-                  ),
-                  fluidRow(
-                    column(12,
-                      shiny::actionButton(ns("run_save_network"), tr("\U0001f4e5 保存网络", "\U0001f4e5 Save Network"),
-                        icon = icon("save"), class = "btn-primary", width = "200px")
-                    )
-                  )
-                )
+                shiny::actionButton(ns("run_save_network"), tr("\U0001f4e5 保存网络", "\U0001f4e5 Save Network"),
+                  icon = icon("save"), class = "btn-primary", width = "200px")
               )
             )
           )
@@ -354,11 +417,7 @@ mod_network_server <- function(id, rv) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
     local_rv <- reactiveValues(
-      plot = NULL,
-      data_result = NULL,
-      save_dir = NULL,
-      result_obj = NULL,
-      table_type = "topo"
+      save_dir = NULL
     )
 
     volumes <- c(
@@ -427,7 +486,7 @@ mod_network_server <- function(id, rv) {
     })
 
     observeEvent(input$net_confirm_save, {
-      req(local_rv$plot)
+      req(rv$last_plot)
       save_dir <- local_rv$save_dir
       if (is.null(save_dir) || !isTRUE(nchar(save_dir) > 0)) {
         showNotification("\u8bf7\u5148\u9009\u62e9\u4fdd\u5b58\u6587\u4ef6\u5939", type = "warning")
@@ -451,7 +510,7 @@ mod_network_server <- function(id, rv) {
       ext <- input$net_image_format
 
       tryCatch({
-        plot_obj <- local_rv$plot
+        plot_obj <- rv$last_plot
         if (inherits(plot_obj, "ggplot") || inherits(plot_obj, "ggplot2")) {
           ggplot2::ggsave(filename = full_path, plot = plot_obj,
             width = input$net_save_width, height = input$net_save_height,
@@ -521,12 +580,9 @@ mod_network_server <- function(id, rv) {
 
     observe({
       if (!check_microtable(rv)) {
-        updatePickerInput(session, "net_env_cols", choices = character(0), selected = character(0))
         updateSelectInput(session, "net_taxa_level", choices = c("OTU", "Genus"), selected = "OTU")
         return()
       }
-      cols <- get_sample_cols(rv)
-      updatePickerInput(session, "net_env_cols", choices = cols, selected = character(0))
 
       mt <- rv$microtable
       if (!is.null(mt) && !is.null(mt$tax_table)) {
@@ -655,11 +711,13 @@ mod_network_server <- function(id, rv) {
 
       append_code(rv, full_code, "\u7f51\u7edc\u6784\u5efa - \u9884\u5199\u4ee3\u7801")
 
-      result <- tryCatch({
-        withProgress(message = "\U0001f4ca \u6b63\u5728\u6784\u5efa\u7f51\u7edc...", value = 0, {
-          mt <- rv$microtable
+      result <- shiny::withProgress(
+        message = "\u7f51\u7edc\u6784\u5efa\u4e2d...",
+        value = 0,
+        {
+          shiny::incProgress(0.1, detail = "\u6b63\u5728\u521b\u5efa trans_network \u5bf9\u8c61...")
 
-          incProgress(0.15, detail = "\u521b\u5efa trans_network \u5bf9\u8c61...")
+          mt <- rv$microtable
 
           t_net <- microeco::trans_network$new(
             dataset = mt,
@@ -670,7 +728,7 @@ mod_network_server <- function(id, rv) {
             nThreads = nThreads_val
           )
 
-          incProgress(0.25, detail = paste0("\u8ba1\u7b97\u7f51\u7edc (", network_method_val, ")..."))
+          shiny::incProgress(0.3, detail = paste0("\u6b63\u5728\u8ba1\u7b97\u7f51\u7edc (", network_method_val, ")..."))
 
           cal_network_params <- switch(network_method_val,
             "spearman" = list(
@@ -722,17 +780,13 @@ mod_network_server <- function(id, rv) {
             )
           )
 
-          incProgress(0.3, detail = "\u6b63\u5728\u8ba1\u7b97\u7f51\u7edc\u8fb9\u7f18...")
-
           do.call(t_net$cal_network, cal_network_params)
 
-          incProgress(0.3, detail = "\u6784\u5efa\u5b8c\u6210")
+          shiny::incProgress(0.4, detail = "\u7f51\u7edc\u8ba1\u7b97\u5b8c\u6210\uff0c\u6b63\u5728\u6574\u7406\u7ed3\u679c...")
 
           list(success = TRUE, t_net = t_net, code = cal_code, init_code = init_code)
-        })
-      }, error = function(e) {
-        list(success = FALSE, error = conditionMessage(e))
-      })
+        }
+      )
 
       if (!isTRUE(result$success)) {
         showNotification(result$error, type = "error", duration = 10)
@@ -797,6 +851,25 @@ mod_network_server <- function(id, rv) {
       t_net <- rv$network_obj
       result <- tryCatch({
         t_net$get_node_table(node_roles = TRUE)
+        nodes_code <- "t_net$get_node_table(node_roles = TRUE)\n"
+        list(success = TRUE, data = t_net$res_node_table, code = nodes_code)
+      }, error = function(e) {
+        list(success = FALSE, error = conditionMessage(e))
+      })
+      if (!isTRUE(result$success)) {
+        showNotification(result$error, type = "error", duration = 10)
+        return()
+      }
+      local_rv$data_nodes <- result$data
+      append_code(rv, paste(rv$network_code, result$code), "\u8282\u70b9\u5c5e\u6027")
+      showNotification("\u8868\u683c\u8ba1\u7b97\u5b8c\u6210", type = "message")
+    })
+
+    observeEvent(input$run_nodes_plot, {
+      req(rv$network_obj)
+      req(local_rv$data_nodes)
+      t_net <- rv$network_obj
+      result <- tryCatch({
         use_type_val <- as.integer(input$roles_plot_type)
         color_values_val <- get_color_palette("Dark2", n = 12)
         if (use_type_val == 1) {
@@ -829,11 +902,10 @@ mod_network_server <- function(id, rv) {
             plot_module_name = input$roles_plot_module_name
           )
         }
-        nodes_code <- paste0(
-          "t_net$get_node_table(node_roles = TRUE)\n",
+        nodes_plot_code <- paste0(
           "p <- t_net$plot_taxa_roles(use_type = ", use_type_val, ")\n"
         )
-        list(success = TRUE, data = t_net$res_node_table, plot = plot_obj, code = nodes_code)
+        list(success = TRUE, plot = plot_obj, code = nodes_plot_code)
       }, error = function(e) {
         list(success = FALSE, error = conditionMessage(e))
       })
@@ -841,11 +913,10 @@ mod_network_server <- function(id, rv) {
         showNotification(result$error, type = "error", duration = 10)
         return()
       }
-      local_rv$data_nodes <- result$data
       local_rv$plot_nodes <- result$plot
       rv$last_plot <- result$plot
-      append_code(rv, paste(rv$network_code, result$code), "\u8282\u70b9\u5c5e\u6027")
-      showNotification("\u5b8c\u6210", type = "message")
+      append_code(rv, result$code, "\u8282\u70b9\u5c5e\u6027\u4f5c\u56fe")
+      showNotification("\u4f5c\u56fe\u5b8c\u6210", type = "message")
     })
 
     observeEvent(input$run_edges, {
@@ -924,7 +995,7 @@ mod_network_server <- function(id, rv) {
       req(rv$network_obj)
       t_net <- rv$network_obj
 
-      save_format <- input$net_save_format
+      save_format <- input$net_save_format_btn
       filename <- input$net_save_filename
       if (is.null(filename) || nchar(trimws(filename)) == 0) {
         filename <- "network"
@@ -963,11 +1034,54 @@ mod_network_server <- function(id, rv) {
       showNotification(result$message, type = "message", duration = 5)
     })
 
+    observeEvent(input$run_network_plot, {
+      req(rv$network_obj)
+      t_net <- rv$network_obj
+      result <- tryCatch({
+        plot_obj <- t_net$plot_network(
+          layout = input$net_plot_layout,
+          vertex_size = input$net_plot_vertex_size,
+          edge_width = input$net_plot_edge_width,
+          label = input$net_plot_label
+        )
+        network_plot_code <- paste0(
+          "p <- t_net$plot_network(\n",
+          "  layout = \"", input$net_plot_layout, "\",\n",
+          "  vertex_size = ", input$net_plot_vertex_size, ",\n",
+          "  edge_width = ", input$net_plot_edge_width, ",\n",
+          "  label = ", input$net_plot_label, "\n",
+          ")\n"
+        )
+        list(success = TRUE, plot = plot_obj, code = network_plot_code)
+      }, error = function(e) {
+        list(success = FALSE, error = conditionMessage(e))
+      })
+      if (!isTRUE(result$success)) {
+        showNotification(result$error, type = "error", duration = 10)
+        return()
+      }
+      local_rv$plot_network <- result$plot
+      rv$last_plot <- result$plot
+      append_code(rv, paste(rv$network_code, result$code), "\u7f51\u7edc\u56fe")
+      showNotification("\u5b8c\u6210", type = "message")
+    })
+
+    output$network_plot <- shiny::renderPlot({
+      req(local_rv$plot_network)
+      if (is(local_rv$plot_network, "ggplot")) {
+        print(local_rv$plot_network)
+      } else if (is(local_rv$plot_network, "igraph")) {
+        igraph::plot.igraph(local_rv$plot_network)
+      } else {
+        print(local_rv$plot_network)
+      }
+    })
+
     output$module_table <- DT::renderDataTable({
       dt <- local_rv$data_module
       if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
         DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 5),
-          rownames = FALSE, filter = "top")
+          rownames = TRUE, filter = "top")
       }
     })
 
@@ -975,7 +1089,7 @@ mod_network_server <- function(id, rv) {
       dt <- local_rv$data_attr
       if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
         DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 5),
-          rownames = FALSE, filter = "top")
+          rownames = TRUE, filter = "top")
       }
     })
 
@@ -983,7 +1097,7 @@ mod_network_server <- function(id, rv) {
       dt <- local_rv$data_nodes
       if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
         DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 5),
-          rownames = FALSE, filter = "top")
+          rownames = TRUE, filter = "top")
       }
     })
 
@@ -1002,7 +1116,7 @@ mod_network_server <- function(id, rv) {
       dt <- local_rv$data_edges
       if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
         DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 5),
-          rownames = FALSE, filter = "top")
+          rownames = TRUE, filter = "top")
       }
     })
 
@@ -1010,7 +1124,7 @@ mod_network_server <- function(id, rv) {
       dt <- local_rv$data_eigen
       if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
         DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 5),
-          rownames = FALSE, filter = "top")
+          rownames = TRUE, filter = "top")
       }
     })
 
@@ -1018,7 +1132,7 @@ mod_network_server <- function(id, rv) {
       dt <- local_rv$data_sumlinks
       if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
         DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 5),
-          rownames = FALSE, filter = "top")
+          rownames = TRUE, filter = "top")
       }
     })
 
@@ -1051,7 +1165,7 @@ mod_network_server <- function(id, rv) {
         )
         if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
           write.table(as.data.frame(dt), file, sep = input$net_table_format,
-            row.names = FALSE, quote = TRUE)
+            row.names = TRUE, quote = TRUE)
         }
       }
     )
@@ -1065,7 +1179,63 @@ mod_network_server <- function(id, rv) {
         dt <- local_rv$data_sumlinks
         if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
           write.table(as.data.frame(dt), file, sep = input$net_table_format_sl,
-            row.names = FALSE, quote = TRUE)
+            row.names = TRUE, quote = TRUE)
+        }
+      }
+    )
+
+    output$net_download_table_mod <- downloadHandler(
+      filename = function() {
+        ext <- ifelse(input$net_table_format_mod == ",", ".csv", ".tsv")
+        paste0("network_module", ext)
+      },
+      content = function(file) {
+        dt <- local_rv$data_module
+        if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+          write.table(as.data.frame(dt), file, sep = input$net_table_format_mod,
+            row.names = TRUE, quote = TRUE)
+        }
+      }
+    )
+
+    output$net_download_table_attr <- downloadHandler(
+      filename = function() {
+        ext <- ifelse(input$net_table_format_attr == ",", ".csv", ".tsv")
+        paste0("network_attr", ext)
+      },
+      content = function(file) {
+        dt <- local_rv$data_attr
+        if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+          write.table(as.data.frame(dt), file, sep = input$net_table_format_attr,
+            row.names = TRUE, quote = TRUE)
+        }
+      }
+    )
+
+    output$net_download_table_edges <- downloadHandler(
+      filename = function() {
+        ext <- ifelse(input$net_table_format_edges == ",", ".csv", ".tsv")
+        paste0("network_edges", ext)
+      },
+      content = function(file) {
+        dt <- local_rv$data_edges
+        if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+          write.table(as.data.frame(dt), file, sep = input$net_table_format_edges,
+            row.names = TRUE, quote = TRUE)
+        }
+      }
+    )
+
+    output$net_download_table_eigen <- downloadHandler(
+      filename = function() {
+        ext <- ifelse(input$net_table_format_eigen == ",", ".csv", ".tsv")
+        paste0("network_eigen", ext)
+      },
+      content = function(file) {
+        dt <- local_rv$data_eigen
+        if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+          write.table(as.data.frame(dt), file, sep = input$net_table_format_eigen,
+            row.names = TRUE, quote = TRUE)
         }
       }
     )

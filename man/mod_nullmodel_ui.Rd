@@ -20,7 +20,6 @@ Supports complete parameter options from trans_nullmodel class.
 \seealso{
 Other advanced-analysis: 
 \code{\link{mod_env_ui}()},
-\code{\link{mod_func_ui}()},
 \code{\link{mod_ml_ui}()},
 \code{\link{mod_multiomics_ui}()},
 \code{\link{mod_network_ui}()}

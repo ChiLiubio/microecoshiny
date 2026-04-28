@@ -81,11 +81,29 @@ mod_env_ui <- function(id, lang = "zh") {
               )
             ),
             fluidRow(
-              column(3, shiny::selectInput(ns("cor_group_use"), "group_use", choices = character(0))),
-              column(3, shiny::selectInput(ns("cor_group_select"), "group_select", choices = character(0))),
-              column(6)
+            column(3, shiny::selectInput(ns("cor_group_use"), "group_use", choices = character(0))),
+            column(3, shiny::selectInput(ns("cor_group_select"), "group_select", choices = character(0))),
+            column(6)
+          ),
+          fluidRow(
+            column(2, shiny::actionButton(ns("run_cor"), tr("🏁 执行分析", "🏁 Run Analysis"),
+              icon = icon("play"), class = "btn-success", width = "200px"))
+          ),
+          fluidRow(
+            column(12,
+              bs4Dash::box(title = tr("📊 结果表", "📊 Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
+                DT::dataTableOutput(ns("env_cor_table"))
+              )
             )
           ),
+          fluidRow(
+            column(2, shiny::selectInput(ns("env_table_format_cor"), tr("表格", "Table"),
+              choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
+            column(2, shiny::downloadButton(ns("env_download_table_cor"), tr("📥 表格下载", "📥 Download Table"),
+              class = "btn-outline-info", width = "100%")),
+            column(8)
+          )
+        ),
           shiny::conditionalPanel(condition = "input.analysis_type == 'cor'", ns = ns,
             h4(tr("plot_cor 参数", "plot_cor Parameters")),
             fluidRow(
@@ -129,6 +147,24 @@ mod_env_ui <- function(id, lang = "zh") {
               column(2, shinyWidgets::materialSwitch(ns("mantel_partial"), "partial_mantel", value = FALSE, status = "warning")),
               column(2, shiny::selectInput(ns("mantel_by_group"), "by_group", choices = setNames("", tr("无", "None")))),
               column(2)
+            ),
+            fluidRow(
+              column(2, shiny::actionButton(ns("run_mantel"), tr("🏁 执行分析", "🏁 Run Analysis"),
+                icon = icon("play"), class = "btn-success", width = "200px"))
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("📊 结果表", "📊 Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
+                  DT::dataTableOutput(ns("env_mantel_table"))
+                )
+              )
+            ),
+            fluidRow(
+              column(2, shiny::selectInput(ns("env_table_format_mantel"), tr("表格", "Table"),
+                choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
+              column(2, shiny::downloadButton(ns("env_download_table_mantel"), tr("📥 表格下载", "📥 Download Table"),
+                class = "btn-outline-info", width = "100%")),
+              column(8)
             )
           ),
           shiny::conditionalPanel(condition = "input.analysis_type == 'ordination'", ns = ns,
@@ -209,6 +245,31 @@ mod_env_ui <- function(id, lang = "zh") {
               column(3, shinyWidgets::materialSwitch(ns("ord_point_second"), "point_second", value = FALSE, status = "warning")),
               column(3, shiny::selectInput(ns("ord_add_sample_label"), "add_sample_label (\u6807\u7b7e\u5217)", choices = c("\u65e0" = "", character(0)))),
               column(6)
+            ),
+            fluidRow(
+              column(2, shiny::actionButton(ns("run_ordination"), tr("🏁 执行分析", "🏁 Run Analysis"),
+                icon = icon("play"), class = "btn-success", width = "200px"))
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("📊 结果表", "📊 Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
+                  DT::dataTableOutput(ns("env_ord_table"))
+                )
+              )
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("📊 图区", "📊 Plot Area"), status = "info", solidHeader = TRUE, width = NULL,
+                  shinycssloaders::withSpinner(shiny::plotOutput(ns("env_ord_plot"), height = "550px"))
+                )
+              )
+            ),
+            fluidRow(
+              column(2, shiny::selectInput(ns("env_table_format_ord"), tr("表格", "Table"),
+                choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
+              column(2, shiny::downloadButton(ns("env_download_table_ord"), tr("📥 表格下载", "📥 Download Table"),
+                class = "btn-outline-info", width = "100%")),
+              column(8)
             )
           ),
           shiny::conditionalPanel(condition = "input.analysis_type == 'diff'", ns = ns,
@@ -249,6 +310,24 @@ mod_env_ui <- function(id, lang = "zh") {
               column(2, shiny::selectInput(ns("diff_add_sig_label"), "add_sig_label",
                 choices = c("Significance", "Letter", "P.adj"), selected = "Significance")),
               column(2)
+            ),
+            fluidRow(
+              column(2, shiny::actionButton(ns("run_diff"), tr("🏁 执行分析", "🏁 Run Analysis"),
+                icon = icon("play"), class = "btn-success", width = "200px"))
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("📊 结果表", "📊 Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
+                  DT::dataTableOutput(ns("env_diff_table"))
+                )
+              )
+            ),
+            fluidRow(
+              column(2, shiny::selectInput(ns("env_table_format_diff"), tr("表格", "Table"),
+                choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
+              column(2, shiny::downloadButton(ns("env_download_table_diff"), tr("📥 表格下载", "📥 Download Table"),
+                class = "btn-outline-info", width = "100%")),
+              column(8)
             )
           ),
           shiny::conditionalPanel(condition = "input.analysis_type == 'autocor'", ns = ns,
@@ -259,6 +338,24 @@ mod_env_ui <- function(id, lang = "zh") {
               column(3, shiny::selectInput(ns("autocor_color_theme"), "color_theme",
                 choices = c("Dark2", "Set1", "Set2", "Set3", "Paired", "Spectral", "Viridis"), selected = "Dark2")),
               column(3)
+            ),
+            fluidRow(
+              column(2, shiny::actionButton(ns("run_autocor"), tr("🏁 执行分析", "🏁 Run Analysis"),
+                icon = icon("play"), class = "btn-success", width = "200px"))
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("📊 结果表", "📊 Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
+                  DT::dataTableOutput(ns("env_autocor_table"))
+                )
+              )
+            ),
+            fluidRow(
+              column(2, shiny::selectInput(ns("env_table_format_autocor"), tr("表格", "Table"),
+                choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
+              column(2, shiny::downloadButton(ns("env_download_table_autocor"), tr("📥 表格下载", "📥 Download Table"),
+                class = "btn-outline-info", width = "100%")),
+              column(8)
             )
           ),
           shiny::conditionalPanel(condition = "input.analysis_type == 'scatterfit'", ns = ns,
@@ -303,9 +400,19 @@ mod_env_ui <- function(id, lang = "zh") {
               column(2, shiny::textInput(ns("scatter_x_axis_title"), "x_axis_title", value = "")),
               column(2, shiny::textInput(ns("scatter_y_axis_title"), "y_axis_title", value = "")),
               column(4)
+            ),
+            fluidRow(
+              column(2, shiny::actionButton(ns("run_scatterfit"), tr("🏁 执行分析", "🏁 Run Analysis"),
+                icon = icon("play"), class = "btn-success", width = "200px"))
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("📊 图区", "📊 Plot Area"), status = "info", solidHeader = TRUE, width = NULL,
+                  shinycssloaders::withSpinner(shiny::plotOutput(ns("env_scatterfit_plot"), height = "550px"))
+                )
+              )
             )
           ),
-          hr(),
           fluidRow(
             column(2, shiny::actionButton(ns("run_env"), tr("\U0001f4ca 执行", "\U0001f4ca Execute"), icon = icon("play"), class = "btn-primary", width = "100%")),
             column(2, shiny::selectInput(ns("image_format"), tr("格式", "Format"),
@@ -314,27 +421,7 @@ mod_env_ui <- function(id, lang = "zh") {
             column(1, shiny::numericInput(ns("save_height"), tr("高 (height)", "Height"), value = 7, min = 3, max = 15)),
             column(2, shiny::numericInput(ns("save_dpi"), "DPI", value = 300, min = 72, max = 600, step = 72)),
             column(2, shiny::actionButton(ns("save_plot_btn"), tr("\U0001f4e5保存图片", "\U0001f4e5Save Plot"), icon = icon("save"), class = "btn-outline-secondary", width = "100%"))
-          ),
-          fluidRow(
-            column(2, shiny::downloadButton(ns("download_table"), tr("\U0001f4e5表格下载", "\U0001f4e5Download Table"), class = "btn-outline-info", width = "100%")),
-            column(2, shiny::selectInput(ns("table_format"), tr("表格", "Table"),
-              choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
-            column(8)
           )
-        )
-      )
-    ),
-    fluidRow(
-      column(12,
-        bs4Dash::box(title = tr("\U0001f4ca 图区", "\U0001f4ca Plot Area"), status = "info", solidHeader = TRUE, width = NULL,
-          shinycssloaders::withSpinner(shiny::plotOutput(ns("env_plot"), height = "550px"))
-        )
-      )
-    ),
-    fluidRow(
-      column(12,
-        bs4Dash::box(title = tr("\U0001f4ca 结果表", "\U0001f4ca Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
-          DT::dataTableOutput(ns("env_table"))
         )
       )
     )
@@ -515,461 +602,370 @@ mod_env_server <- function(id, rv) {
       }, error = function(e) RColorBrewer::brewer.pal(8, "Dark2"))
     }
 
-    observeEvent(input$run_env, {
-      if (!check_microtable(rv)) {
-        showNotification("\u8bf7\u5148\u5bfc\u5165\u6570\u636e", type = "error")
-        return()
-      }
-
-      if (length(input$env_cols) == 0) {
-        showNotification("\u8bf7\u9009\u62e9\u73af\u5883\u56e0\u5b50\u5217", type = "warning")
-        return()
-      }
-
-      analysis <- input$analysis_type
-      group_val <- if (nchar(input$env_group)) input$env_group else NULL
-      by_group_val <- if (nchar(input$env_by_group)) input$env_by_group else NULL
+    observeEvent(input$run_cor, {
+      if (!check_microtable(rv)) { showNotification("请先导入数据", type = "error"); return() }
+      if (length(input$env_cols) == 0) { showNotification("请选择环境因子列", type = "warning"); return() }
 
       result <- tryCatch({
         mt <- rv$microtable
         dataset_name <- rv$microtable_name %||% "tmp_microtable"
-
         env_str <- paste0('c("', paste(input$env_cols, collapse = '", "'), '")')
+        init_code <- paste0("t_env <- microeco::trans_env$new(\n  dataset = ", dataset_name, ",\n  env_cols = ", env_str, "\n)\n")
 
-        init_code <- paste0(
-          "t_env <- microeco::trans_env$new(\n",
-          "  dataset = ", dataset_name, ",\n",
-          "  env_cols = ", env_str, ",\n",
-          "  standardize = ", input$env_standardize, ",\n",
-          "  character2numeric = ", input$env_character2numeric, ",\n",
-          "  complete_na = ", input$env_complete_na, "\n",
-          ")\n"
-        )
+        use_taxa_num_val <- { val <- input$cor_use_taxa_num; if (is.null(val) || is.na(val) || val <= 0) NULL else val }
+        group_use_val <- if (nchar(input$cor_group_use)) input$cor_group_use else NULL
+        group_select_val <- if (nchar(input$cor_group_select)) input$cor_group_select else NULL
+        other_taxa_val <- if (input$cor_use_data == "other" && nchar(input$cor_other_taxa)) trimws(strsplit(input$cor_other_taxa, ",\\s*")[[1]]) else NULL
+        color_vec <- strsplit(input$cor_color_vector, ",\\s*")[[1]]
+        if (length(color_vec) != 3) color_vec <- c("#053061", "white", "#A50026")
 
-        if (analysis == "cor") {
-          use_taxa_num_val <- {
-            val <- input$cor_use_taxa_num
-            if (is.null(val) || is.na(val) || val <= 0) NULL else val
-          }
-          group_use_val <- if (nchar(input$cor_group_use)) input$cor_group_use else NULL
-          group_select_val <- if (nchar(input$cor_group_select)) input$cor_group_select else NULL
-          other_taxa_val <- if (input$cor_use_data == "other" && nchar(input$cor_other_taxa)) {
-            trimws(strsplit(input$cor_other_taxa, ",\\s*")[[1]])
-          } else NULL
+        t_env <- microeco::trans_env$new(dataset = mt, env_cols = input$env_cols)
+        t_env$cal_cor(use_data = input$cor_use_data, method = input$cor_method, partial = input$cor_partial,
+          p_adjust_method = input$cor_p_adjust_method, p_adjust_type = input$cor_p_adjust_type,
+          filter_thres = input$cor_filter_thres, filter_unknown = input$cor_filter_unknown,
+          use_taxa_num = use_taxa_num_val, taxa_name_full = input$cor_taxa_name_full,
+          complete_cases = input$cor_complete_cases, group_use = group_use_val,
+          group_select = group_select_val, other_taxa = other_taxa_val)
 
-          color_vec <- strsplit(input$cor_color_vector, ",\\s*")[[1]]
-          if (length(color_vec) != 3) color_vec <- c("#053061", "white", "#A50026")
+        p <- t_env$plot_cor(color_vector = color_vec, xtext_angle = input$cor_xtext_angle,
+          xtext_size = input$cor_xtext_size, xtext_color = input$cor_xtext_color,
+          ytext_size = if (is.na(input$cor_ytext_size)) NULL else input$cor_ytext_size,
+          ytext_color = input$cor_ytext_color, ytext_italic = input$cor_ytext_italic,
+          ytext_position = input$cor_ytext_position, sig_label_size = input$cor_sig_label_size,
+          cluster_ggplot = input$cor_cluster_ggplot, cluster_height_rows = input$cor_cluster_height_rows,
+          cluster_height_cols = input$cor_cluster_height_cols, na.value = input$cor_na_value,
+          font_family = if (nchar(input$cor_font_family)) input$cor_font_family else NULL,
+          trans = input$cor_trans, legend_title = if (nchar(input$cor_legend_title)) input$cor_legend_title else NULL,
+          keep_prefix = input$cor_keep_prefix)
 
-          t_env <- microeco::trans_env$new(
-            dataset = mt,
-            env_cols = input$env_cols,
-            standardize = input$env_standardize,
-            character2numeric = input$env_character2numeric,
-            complete_na = input$env_complete_na
-          )
+        cor_code <- paste0("t_env$cal_cor(\n  use_data = \"", input$cor_use_data, "\",\n  method = \"", input$cor_method, "\"\n)\n",
+          "p <- t_env$plot_cor()\n")
+        code <- paste0(init_code, "# 相关性分析\n", cor_code)
+        list(success = TRUE, plot = p, data_result = t_env$res_cor, code = code)
+      }, error = function(e) list(success = FALSE, error = conditionMessage(e)))
 
-          t_env$cal_cor(
-            use_data = input$cor_use_data,
-            method = input$cor_method,
-            partial = input$cor_partial,
-            p_adjust_method = input$cor_p_adjust_method,
-            p_adjust_type = input$cor_p_adjust_type,
-            filter_thres = input$cor_filter_thres,
-            filter_unknown = input$cor_filter_unknown,
-            use_taxa_num = use_taxa_num_val,
-            taxa_name_full = input$cor_taxa_name_full,
-            complete_cases = input$cor_complete_cases,
-            group_use = group_use_val,
-            group_select = group_select_val,
-            other_taxa = other_taxa_val
-          )
-
-          p <- t_env$plot_cor(
-            color_vector = color_vec,
-            xtext_angle = input$cor_xtext_angle,
-            xtext_size = input$cor_xtext_size,
-            xtext_color = input$cor_xtext_color,
-            ytext_size = if (is.na(input$cor_ytext_size)) NULL else input$cor_ytext_size,
-            ytext_color = input$cor_ytext_color,
-            ytext_italic = input$cor_ytext_italic,
-            ytext_position = input$cor_ytext_position,
-            sig_label_size = input$cor_sig_label_size,
-            cluster_ggplot = input$cor_cluster_ggplot,
-            cluster_height_rows = input$cor_cluster_height_rows,
-            cluster_height_cols = input$cor_cluster_height_cols,
-            na.value = input$cor_na_value,
-            font_family = if (nchar(input$cor_font_family)) input$cor_font_family else NULL,
-            trans = input$cor_trans,
-            legend_title = if (nchar(input$cor_legend_title)) input$cor_legend_title else NULL,
-            keep_prefix = input$cor_keep_prefix
-          )
-
-          cor_code <- paste0(
-            "t_env$cal_cor(\n",
-            "  use_data = \"", input$cor_use_data, "\",\n",
-            "  method = \"", input$cor_method, "\",\n",
-            "  partial = ", input$cor_partial, ",\n",
-            "  p_adjust_method = \"", input$cor_p_adjust_method, "\",\n",
-            "  p_adjust_type = \"", input$cor_p_adjust_type, "\",\n",
-            "  filter_thres = ", input$cor_filter_thres, ",\n",
-            "  filter_unknown = ", input$cor_filter_unknown, ",\n",
-            if (!is.null(use_taxa_num_val)) paste0("  use_taxa_num = ", use_taxa_num_val, ",\n") else "",
-            "  taxa_name_full = ", input$cor_taxa_name_full, ",\n",
-            "  complete_cases = ", input$cor_complete_cases, "\n",
-            ")\n",
-            "p <- t_env$plot_cor(\n",
-            "  color_vector = c(\"", paste(color_vec, collapse = "\", \""), "\"),\n",
-            "  xtext_angle = ", input$cor_xtext_angle, ",\n",
-            "  xtext_size = ", input$cor_xtext_size, ",\n",
-            "  xtext_color = \"", input$cor_xtext_color, "\",\n",
-            "  ytext_italic = ", input$cor_ytext_italic, ",\n",
-            "  ytext_position = \"", input$cor_ytext_position, "\",\n",
-            "  sig_label_size = ", input$cor_sig_label_size, ",\n",
-            "  cluster_ggplot = \"", input$cor_cluster_ggplot, "\",\n",
-            "  trans = \"", input$cor_trans, "\"\n",
-            ")\n"
-          )
-          code <- paste0(init_code, "# \u76f8\u5173\u6027\u5206\u6790\n", cor_code)
-
-          list(success = TRUE, plot = p, data_result = t_env$res_cor, result_obj = t_env, code = code)
-
-        } else if (analysis == "mantel") {
-          by_group_mantel <- if (nchar(input$mantel_by_group)) input$mantel_by_group else NULL
-
-          t_env <- microeco::trans_env$new(
-            dataset = mt,
-            env_cols = input$env_cols,
-            standardize = input$env_standardize,
-            character2numeric = input$env_character2numeric,
-            complete_na = input$env_complete_na
-          )
-
-          t_env$cal_mantel(
-            use_measure = input$mantel_use_measure,
-            method = input$mantel_method,
-            p_adjust_method = input$mantel_p_adjust_method,
-            partial_mantel = input$mantel_partial,
-            by_group = by_group_mantel
-          )
-
-          mantel_code <- paste0(
-            "t_env$cal_mantel(\n",
-            "  use_measure = \"", input$mantel_use_measure, "\",\n",
-            "  method = \"", input$mantel_method, "\",\n",
-            "  p_adjust_method = \"", input$mantel_p_adjust_method, "\",\n",
-            "  partial_mantel = ", input$mantel_partial, ",\n",
-            "  by_group = ", if (!is.null(by_group_mantel)) paste0("\"", by_group_mantel, "\"") else "NULL", "\n",
-            ")\n"
-          )
-          code <- paste0(init_code, "# Mantel \u68c0\u9a8c\n", mantel_code)
-
-          list(success = TRUE, plot = NULL, data_result = t_env$res_mantel, result_obj = t_env, code = code)
-
-        } else if (analysis == "ordination") {
-          t_env <- microeco::trans_env$new(
-            dataset = mt,
-            env_cols = input$env_cols,
-            standardize = input$env_standardize,
-            character2numeric = input$env_character2numeric,
-            complete_na = input$env_complete_na
-          )
-
-          t_env$cal_ordination(
-            method = input$ord_method,
-            taxa_level = input$ord_taxa_level,
-            taxa_filter_thres = if (input$ord_taxa_filter_thres > 0) input$ord_taxa_filter_thres else NULL,
-            feature_sel = input$ord_feature_sel,
-            use_measure = if (nchar(input$ord_use_measure)) input$ord_use_measure else NULL
-          )
-
-          if (input$ord_show_taxa) {
-            t_env$trans_ordination(
-              show_taxa = input$ord_show_taxa_num,
-              adjust_arrow_length = input$ord_adjust_arrow,
-              min_perc_env = input$ord_min_perc_env,
-              max_perc_env = input$ord_max_perc_env,
-              min_perc_tax = input$ord_min_perc_tax,
-              max_perc_tax = input$ord_max_perc_tax
-            )
-          } else {
-            t_env$trans_ordination(
-              show_taxa = NULL,
-              adjust_arrow_length = input$ord_adjust_arrow,
-              min_perc_env = input$ord_min_perc_env,
-              max_perc_env = input$ord_max_perc_env,
-              min_perc_tax = input$ord_min_perc_tax,
-              max_perc_tax = input$ord_max_perc_tax
-            )
-          }
-
-          if (input$ord_anova) {
-            t_env$cal_ordination_anova()
-          }
-
-          if (input$ord_envfit) {
-            t_env$cal_ordination_envfit()
-          }
-
-          plot_color_val <- if (nchar(input$ord_plot_color)) input$ord_plot_color else NULL
-          plot_shape_val <- if (nchar(input$ord_plot_shape)) input$ord_plot_shape else NULL
-
-          plot_type_val <- switch(input$ord_plot_type,
-            "point" = "point",
-            "point+ellipse" = c("point", "ellipse"),
-            "point+chull" = c("point", "chull"),
-            "point+centroid" = c("point", "centroid"),
-            "none" = "none",
-            "point"
-          )
-          
-          ord_group_count <- if (!is.null(plot_color_val) && plot_color_val %in% colnames(mt$sample_table)) {
-            length(unique(mt$sample_table[, plot_color_val]))
-          } else 8
-
-          p <- t_env$plot_ordination(
-            plot_color = plot_color_val,
-            plot_shape = plot_shape_val,
-            color_values = get_color_palette(input$ord_color_theme, ord_group_count),
-            plot_type = plot_type_val,
-            point_size = input$ord_point_size,
-            point_alpha = input$ord_point_alpha,
-            point_second = input$ord_point_second,
-            point_second_size = if (is.na(input$ord_point_second_size)) NULL else input$ord_point_second_size,
-            point_second_alpha = if (is.na(input$ord_point_second_alpha)) NULL else input$ord_point_second_alpha,
-            point_second_color = if (nchar(input$ord_point_second_color)) input$ord_point_second_color else NULL,
-            env_text_size = input$ord_env_text_size,
-            taxa_text_size = input$ord_taxa_text_size,
-            taxa_text_italic = input$ord_taxa_text_italic,
-            taxa_text_prefix = input$ord_taxa_text_prefix,
-            env_text_color = input$ord_env_text_color,
-            env_arrow_color = input$ord_env_arrow_color,
-            taxa_text_color = input$ord_taxa_text_color,
-            taxa_arrow_color = input$ord_taxa_arrow_color,
-            ellipse_level = input$ord_ellipse_level,
-            ellipse_type = input$ord_ellipse_type,
-            ellipse_chull_fill = input$ord_ellipse_chull_fill,
-            ellipse_chull_alpha = input$ord_ellipse_chull_alpha,
-            env_nudge_x = if (is.na(input$ord_env_nudge_x)) NULL else input$ord_env_nudge_x,
-            env_nudge_y = if (is.na(input$ord_env_nudge_y)) NULL else input$ord_env_nudge_y,
-            taxa_nudge_x = if (is.na(input$ord_taxa_nudge_x)) NULL else input$ord_taxa_nudge_x,
-            taxa_nudge_y = if (is.na(input$ord_taxa_nudge_y)) NULL else input$ord_taxa_nudge_y,
-            add_sample_label = if (nchar(input$ord_add_sample_label)) input$ord_add_sample_label else NULL
-          )
-
-          ord_code <- paste0(
-            "t_env$cal_ordination(\n",
-            "  method = \"", input$ord_method, "\",\n",
-            "  taxa_level = \"", input$ord_taxa_level, "\",\n",
-            if (!is.null(input$ord_taxa_filter_thres) && input$ord_taxa_filter_thres > 0) paste0("  taxa_filter_thres = ", input$ord_taxa_filter_thres, ",\n") else "",
-            "  feature_sel = ", input$ord_feature_sel, "\n",
-            ")\n",
-            "t_env$trans_ordination(\n",
-            "  show_taxa = ", if (input$ord_show_taxa) input$ord_show_taxa_num else "NULL", ",\n",
-            "  adjust_arrow_length = ", input$ord_adjust_arrow, "\n",
-            ")\n",
-            "p <- t_env$plot_ordination(\n",
-            if (!is.null(plot_color_val)) paste0("  plot_color = \"", plot_color_val, "\",\n") else "  plot_color = NULL,\n",
-            if (!is.null(plot_shape_val)) paste0("  plot_shape = \"", plot_shape_val, "\",\n") else "  plot_shape = NULL,\n",
-            "  plot_type = c(\"", paste(plot_type_val, collapse = "\", \""), "\"),\n",
-            "  point_size = ", input$ord_point_size, ",\n",
-            "  point_alpha = ", input$ord_point_alpha, "\n",
-            ")\n"
-          )
-          code <- paste0(init_code, "# \u7ed6\u675f\u6392\u5e8f\n", ord_code)
-
-          list(success = TRUE, plot = p, data_result = NULL, result_obj = t_env, code = code)
-
-        } else if (analysis == "diff") {
-          t_env <- microeco::trans_env$new(
-            dataset = mt,
-            env_cols = input$env_cols,
-            standardize = input$env_standardize,
-            character2numeric = input$env_character2numeric,
-            complete_na = input$env_complete_na
-          )
-
-          formula_val <- if (nchar(input$diff_formula)) input$diff_formula else NULL
-
-          t_env$cal_diff(
-            group = group_val,
-            by_group = by_group_val,
-            method = input$diff_method,
-            p_adjust_method = input$diff_p_adjust_method,
-            alpha = input$diff_alpha_level,
-            formula = formula_val
-          )
-
-          measure_val <- if (nchar(input$diff_measure)) input$diff_measure else NULL
-          add_val <- if (nchar(input$diff_add)) input$diff_add else NULL
-
-          p <- t_env$plot_diff(
-            measure = measure_val,
-            plot_type = input$diff_plot_type,
-            color_values = RColorBrewer::brewer.pal(8, "Dark2"),
-            add = add_val,
-            add_sig = input$diff_add_sig,
-            add_sig_label = input$diff_add_sig_label,
-            xtext_angle = input$diff_xtext_angle,
-            xtext_size = input$diff_xtext_size,
-            ytitle_size = input$diff_ytitle_size,
-            bar_width = input$diff_bar_width
-          )
-
-          diff_code <- paste0(
-            "t_env$cal_diff(\n",
-            "  group = ", if (!is.null(group_val)) paste0("\"", group_val, "\"") else "NULL", ",\n",
-            "  by_group = ", if (!is.null(by_group_val)) paste0("\"", by_group_val, "\"") else "NULL", ",\n",
-            "  method = \"", input$diff_method, "\",\n",
-            "  p_adjust_method = \"", input$diff_p_adjust_method, "\",\n",
-            "  alpha = ", input$diff_alpha_level,
-            if (!is.null(formula_val)) paste0(",\n  formula = ", formula_val) else "",
-            "\n)\n",
-            "p <- t_env$plot_diff(\n",
-            "  measure = ", if (!is.null(measure_val)) paste0("\"", measure_val, "\"") else "NULL", ",\n",
-            "  plot_type = \"", input$diff_plot_type, "\",\n",
-            "  add = ", if (!is.null(add_val)) paste0("\"", add_val, "\"") else "NULL", ",\n",
-            "  add_sig = ", input$diff_add_sig, ",\n",
-            "  xtext_angle = ", input$diff_xtext_angle, ",\n",
-            "  xtext_size = ", input$diff_xtext_size, ",\n",
-            "  ytitle_size = ", input$diff_ytitle_size, "\n",
-            ")\n"
-          )
-          code <- paste0(init_code, "# \u5dee\u5f0f\u68c0\u9a8c\n", diff_code)
-
-          list(success = TRUE, plot = p, data_result = t_env$res_diff, result_obj = t_env, code = code)
-
-        } else if (analysis == "autocor") {
-          t_env <- microeco::trans_env$new(
-            dataset = mt,
-            env_cols = input$env_cols,
-            standardize = input$env_standardize,
-            character2numeric = input$env_character2numeric,
-            complete_na = input$env_complete_na
-          )
-
-          p <- t_env$cal_autocor(
-            group = group_val,
-            ggpairs = input$autocor_ggpairs,
-            color_values = get_color_palette(input$autocor_color_theme),
-            alpha = input$autocor_alpha
-          )
-
-          autocor_code <- paste0(
-            "t_env$cal_autocor(\n",
-            "  group = ", if (!is.null(group_val)) paste0("\"", group_val, "\"") else "NULL", ",\n",
-            "  ggpairs = ", input$autocor_ggpairs, ",\n",
-            "  alpha = ", input$autocor_alpha, "\n",
-            ")\n"
-          )
-          code <- paste0(init_code, "# \u81ea\u76f8\u5173\n", autocor_code)
-
-          list(success = TRUE, plot = p, data_result = NULL, result_obj = t_env, code = code)
-
-        } else if (analysis == "scatterfit") {
-          t_env <- microeco::trans_env$new(
-            dataset = mt,
-            env_cols = input$env_cols,
-            standardize = input$env_standardize,
-            character2numeric = input$env_character2numeric,
-            complete_na = input$env_complete_na
-          )
-
-          scatter_x_val <- if (nchar(input$scatter_x)) input$scatter_x else 1
-          scatter_y_val <- if (nchar(input$scatter_y)) input$scatter_y else 2
-          scatter_group_val <- if (nchar(input$scatter_group)) input$scatter_group else NULL
-
-          p <- t_env$plot_scatterfit(
-            x = scatter_x_val,
-            y = scatter_y_val,
-            group = scatter_group_val,
-            type = input$scatter_type,
-            cor_method = input$scatter_cor_method,
-            color_values = get_color_palette(input$autocor_color_theme),
-            label_sep = input$scatter_label_sep,
-            label.x.npc = input$scatter_label_x_npc,
-            label.y.npc = input$scatter_label_y_npc,
-            label.x = if (is.na(input$scatter_label_x)) NULL else input$scatter_label_x,
-            label.y = if (is.na(input$scatter_label_y)) NULL else input$scatter_label_y,
-            x_axis_title = if (nchar(input$scatter_x_axis_title)) input$scatter_x_axis_title else "",
-            y_axis_title = if (nchar(input$scatter_y_axis_title)) input$scatter_y_axis_title else "",
-            point_size = input$scatter_point_size,
-            point_alpha = input$scatter_point_alpha,
-            line_size = input$scatter_line_size,
-            line_color = input$scatter_line_color,
-            line_se = input$scatter_line_se,
-            line_se_color = input$scatter_line_se_color,
-            line_alpha = input$scatter_line_alpha,
-            pvalue_trim = input$scatter_pvalue_trim,
-            cor_coef_trim = input$scatter_cor_coef_trim,
-            lm_equation = input$scatter_lm_equation,
-            lm_fir_trim = input$scatter_lm_fir_trim,
-            lm_sec_trim = input$scatter_lm_sec_trim,
-            lm_squ_trim = input$scatter_lm_squ_trim
-          )
-
-          scatter_code <- paste0(
-            "p <- t_env$plot_scatterfit(\n",
-            "  x = \"", scatter_x_val, "\",\n",
-            "  y = \"", scatter_y_val, "\",\n",
-            if (!is.null(scatter_group_val)) paste0("  group = \"", scatter_group_val, "\",\n") else "  group = NULL,\n",
-            "  type = \"", input$scatter_type, "\",\n",
-            "  cor_method = \"", input$scatter_cor_method, "\",\n",
-            "  point_size = ", input$scatter_point_size, ",\n",
-            "  point_alpha = ", input$scatter_point_alpha, ",\n",
-            "  line_size = ", input$scatter_line_size, ",\n",
-            "  line_color = \"", input$scatter_line_color, "\",\n",
-            "  line_se = ", input$scatter_line_se, "\n",
-            ")\n"
-          )
-          code <- paste0(init_code, "# \u6563\u70b9\u56fe\n", scatter_code)
-
-          list(success = TRUE, plot = p, data_result = NULL, result_obj = t_env, code = code)
-
-        } else {
-          stop("\u672a\u77e5\u5206\u6790\u7c7b\u578b")
-        }
-      }, error = function(e) {
-        list(success = FALSE, error = conditionMessage(e))
-      })
-
-      if (!isTRUE(result$success)) {
-        showNotification(result$error, type = "error", duration = 10)
-        return()
-      }
-
-      append_code(rv, result$code, paste0("\u73af\u5883\u56e0\u5b50\u5173\u8054 - ", analysis))
-      local_rv$plot <- result$plot
-      local_rv$data_result <- result$data_result
-      local_rv$result_obj <- result$result_obj
+      if (!isTRUE(result$success)) { showNotification(result$error, type = "error", duration = 10); return() }
+      append_code(rv, result$code, "环境因子关联 - cor")
+      local_rv$data_cor <- result$data_result
+      local_rv$plot_cor <- result$plot
       rv$last_plot <- result$plot
-      showNotification("\u5b8c\u6210", type = "message")
+      showNotification("完成", type = "message")
     })
 
-    output$env_plot <- shiny::renderPlot({
-      req(local_rv$plot)
-      print(local_rv$plot)
+    observeEvent(input$run_mantel, {
+      if (!check_microtable(rv)) { showNotification("请先导入数据", type = "error"); return() }
+      if (length(input$env_cols) == 0) { showNotification("请选择环境因子列", type = "warning"); return() }
+
+      result <- tryCatch({
+        mt <- rv$microtable
+        dataset_name <- rv$microtable_name %||% "tmp_microtable"
+        env_str <- paste0('c("', paste(input$env_cols, collapse = '", "'), '")')
+        init_code <- paste0("t_env <- microeco::trans_env$new(\n  dataset = ", dataset_name, ",\n  env_cols = ", env_str, "\n)\n")
+
+        by_group_mantel <- if (nchar(input$mantel_by_group)) input$mantel_by_group else NULL
+        t_env <- microeco::trans_env$new(dataset = mt, env_cols = input$env_cols)
+        t_env$cal_mantel(use_measure = input$mantel_use_measure, method = input$mantel_method,
+          p_adjust_method = input$mantel_p_adjust_method, partial_mantel = input$mantel_partial,
+          by_group = by_group_mantel)
+
+        mantel_code <- paste0("t_env$cal_mantel(\n  use_measure = \"", input$mantel_use_measure, "\"\n)\n")
+        code <- paste0(init_code, "# Mantel 检验\n", mantel_code)
+        list(success = TRUE, data_result = t_env$res_mantel, code = code)
+      }, error = function(e) list(success = FALSE, error = conditionMessage(e)))
+
+      if (!isTRUE(result$success)) { showNotification(result$error, type = "error", duration = 10); return() }
+      append_code(rv, result$code, "环境因子关联 - mantel")
+      local_rv$data_mantel <- result$data_result
+      showNotification("完成", type = "message")
     })
 
-    output$env_table <- DT::renderDataTable({
-      dt <- local_rv$data_result
-      if (is.data.frame(dt)) {
-        DT::datatable(dt, options = list(scrollX = TRUE, pageLength = 20), rownames = FALSE, filter = "top")
-      } else if (is(local_rv$result_obj, "trans_env") && !is.null(local_rv$result_obj$res_mantel)) {
-        DT::datatable(local_rv$result_obj$res_mantel, options = list(scrollX = TRUE, pageLength = 20), rownames = FALSE, filter = "top")
+    observeEvent(input$run_ordination, {
+      if (!check_microtable(rv)) { showNotification("请先导入数据", type = "error"); return() }
+      if (length(input$env_cols) == 0) { showNotification("请选择环境因子列", type = "warning"); return() }
+
+      result <- tryCatch({
+        mt <- rv$microtable
+        dataset_name <- rv$microtable_name %||% "tmp_microtable"
+        env_str <- paste0('c("', paste(input$env_cols, collapse = '", "'), '")')
+        init_code <- paste0("t_env <- microeco::trans_env$new(\n  dataset = ", dataset_name, ",\n  env_cols = ", env_str, "\n)\n")
+
+        t_env <- microeco::trans_env$new(dataset = mt, env_cols = input$env_cols)
+        t_env$cal_ordination(method = input$ord_method, taxa_level = input$ord_taxa_level,
+          taxa_filter_thres = if (input$ord_taxa_filter_thres > 0) input$ord_taxa_filter_thres else NULL,
+          feature_sel = input$ord_feature_sel, use_measure = if (nchar(input$ord_use_measure)) input$ord_use_measure else NULL)
+
+        t_env$trans_ordination(show_taxa = if (input$ord_show_taxa) input$ord_show_taxa_num else NULL,
+          adjust_arrow_length = input$ord_adjust_arrow, min_perc_env = input$ord_min_perc_env,
+          max_perc_env = input$ord_max_perc_env, min_perc_tax = input$ord_min_perc_tax, max_perc_tax = input$ord_max_perc_tax)
+
+        if (input$ord_anova) t_env$cal_ordination_anova()
+        if (input$ord_envfit) t_env$cal_ordination_envfit()
+
+        plot_color_val <- if (nchar(input$ord_plot_color)) input$ord_plot_color else NULL
+        plot_shape_val <- if (nchar(input$ord_plot_shape)) input$ord_plot_shape else NULL
+        plot_type_val <- switch(input$ord_plot_type, "point" = "point", "point+ellipse" = c("point", "ellipse"),
+          "point+chull" = c("point", "chull"), "point+centroid" = c("point", "centroid"), "none" = "none", "point")
+        ord_group_count <- if (!is.null(plot_color_val) && plot_color_val %in% colnames(mt$sample_table)) {
+          length(unique(mt$sample_table[, plot_color_val])) } else 8
+
+        p <- t_env$plot_ordination(plot_color = plot_color_val, plot_shape = plot_shape_val,
+          color_values = get_color_palette(input$ord_color_theme, ord_group_count), plot_type = plot_type_val,
+          point_size = input$ord_point_size, point_alpha = input$ord_point_alpha,
+          point_second = input$ord_point_second, point_second_size = if (is.na(input$ord_point_second_size)) NULL else input$ord_point_second_size,
+          point_second_alpha = if (is.na(input$ord_point_second_alpha)) NULL else input$ord_point_second_alpha,
+          point_second_color = if (nchar(input$ord_point_second_color)) input$ord_point_second_color else NULL,
+          env_text_size = input$ord_env_text_size, taxa_text_size = input$ord_taxa_text_size,
+          taxa_text_italic = input$ord_taxa_text_italic, taxa_text_prefix = input$ord_taxa_text_prefix,
+          env_text_color = input$ord_env_text_color, env_arrow_color = input$ord_env_arrow_color,
+          taxa_text_color = input$ord_taxa_text_color, taxa_arrow_color = input$ord_taxa_arrow_color,
+          ellipse_level = input$ord_ellipse_level, ellipse_type = input$ord_ellipse_type,
+          ellipse_chull_fill = input$ord_ellipse_chull_fill, ellipse_chull_alpha = input$ord_ellipse_chull_alpha,
+          env_nudge_x = if (is.na(input$ord_env_nudge_x)) NULL else input$ord_env_nudge_x,
+          env_nudge_y = if (is.na(input$ord_env_nudge_y)) NULL else input$ord_env_nudge_y,
+          taxa_nudge_x = if (is.na(input$ord_taxa_nudge_x)) NULL else input$ord_taxa_nudge_x,
+          taxa_nudge_y = if (is.na(input$ord_taxa_nudge_y)) NULL else input$ord_taxa_nudge_y,
+          add_sample_label = if (nchar(input$ord_add_sample_label)) input$ord_add_sample_label else NULL)
+
+        ord_code <- paste0("t_env$cal_ordination(\n  method = \"", input$ord_method, "\"\n)\n",
+          "p <- t_env$plot_ordination()\n")
+        code <- paste0(init_code, "# 约束排序\n", ord_code)
+        list(success = TRUE, plot = p, data_result = NULL, code = code)
+      }, error = function(e) list(success = FALSE, error = conditionMessage(e)))
+
+      if (!isTRUE(result$success)) { showNotification(result$error, type = "error", duration = 10); return() }
+      append_code(rv, result$code, "环境因子关联 - ordination")
+      local_rv$data_ord <- result$data_result
+      local_rv$plot_ord <- result$plot
+      rv$last_plot <- result$plot
+      showNotification("完成", type = "message")
+    })
+
+    observeEvent(input$run_diff, {
+      if (!check_microtable(rv)) { showNotification("请先导入数据", type = "error"); return() }
+      if (length(input$env_cols) == 0) { showNotification("请选择环境因子列", type = "warning"); return() }
+
+      result <- tryCatch({
+        mt <- rv$microtable
+        dataset_name <- rv$microtable_name %||% "tmp_microtable"
+        env_str <- paste0('c("', paste(input$env_cols, collapse = '", "'), '")')
+        init_code <- paste0("t_env <- microeco::trans_env$new(\n  dataset = ", dataset_name, ",\n  env_cols = ", env_str, "\n)\n")
+
+        group_val <- if (nchar(input$env_group)) input$env_group else NULL
+        by_group_val <- if (nchar(input$env_by_group)) input$env_by_group else NULL
+        formula_val <- if (nchar(input$diff_formula)) input$diff_formula else NULL
+
+        t_env <- microeco::trans_env$new(dataset = mt, env_cols = input$env_cols)
+        t_env$cal_diff(group = group_val, by_group = by_group_val, method = input$diff_method,
+          p_adjust_method = input$diff_p_adjust_method, alpha = input$diff_alpha_level, formula = formula_val)
+
+        measure_val <- if (nchar(input$diff_measure)) input$diff_measure else NULL
+        add_val <- if (nchar(input$diff_add)) input$diff_add else NULL
+        p <- t_env$plot_diff(measure = measure_val, plot_type = input$diff_plot_type,
+          color_values = RColorBrewer::brewer.pal(8, "Dark2"), add = add_val,
+          add_sig = input$diff_add_sig, add_sig_label = input$diff_add_sig_label,
+          xtext_angle = input$diff_xtext_angle, xtext_size = input$diff_xtext_size,
+          ytitle_size = input$diff_ytitle_size, bar_width = input$diff_bar_width)
+
+        diff_code <- paste0("t_env$cal_diff(\n  method = \"", input$diff_method, "\"\n)\n",
+          "p <- t_env$plot_diff()\n")
+        code <- paste0(init_code, "# 差异检验\n", diff_code)
+        list(success = TRUE, plot = p, data_result = t_env$res_diff, code = code)
+      }, error = function(e) list(success = FALSE, error = conditionMessage(e)))
+
+      if (!isTRUE(result$success)) { showNotification(result$error, type = "error", duration = 10); return() }
+      append_code(rv, result$code, "环境因子关联 - diff")
+      local_rv$data_diff <- result$data_result
+      local_rv$plot_diff <- result$plot
+      rv$last_plot <- result$plot
+      showNotification("完成", type = "message")
+    })
+
+    observeEvent(input$run_autocor, {
+      if (!check_microtable(rv)) { showNotification("请先导入数据", type = "error"); return() }
+      if (length(input$env_cols) == 0) { showNotification("请选择环境因子列", type = "warning"); return() }
+
+      result <- tryCatch({
+        mt <- rv$microtable
+        dataset_name <- rv$microtable_name %||% "tmp_microtable"
+        env_str <- paste0('c("', paste(input$env_cols, collapse = '", "'), '")')
+        init_code <- paste0("t_env <- microeco::trans_env$new(\n  dataset = ", dataset_name, ",\n  env_cols = ", env_str, "\n)\n")
+
+        group_val <- if (nchar(input$env_group)) input$env_group else NULL
+        p <- t_env$cal_autocor(group = group_val, ggpairs = input$autocor_ggpairs,
+          color_values = get_color_palette(input$autocor_color_theme), alpha = input$autocor_alpha)
+
+        autocor_code <- paste0("t_env$cal_autocor()\n")
+        code <- paste0(init_code, "# 自相关\n", autocor_code)
+        list(success = TRUE, plot = p, data_result = NULL, code = code)
+      }, error = function(e) list(success = FALSE, error = conditionMessage(e)))
+
+      if (!isTRUE(result$success)) { showNotification(result$error, type = "error", duration = 10); return() }
+      append_code(rv, result$code, "环境因子关联 - autocor")
+      local_rv$data_autocor <- result$data_result
+      local_rv$plot_autocor <- result$plot
+      rv$last_plot <- result$plot
+      showNotification("完成", type = "message")
+    })
+
+    observeEvent(input$run_scatterfit, {
+      if (!check_microtable(rv)) { showNotification("请先导入数据", type = "error"); return() }
+      if (length(input$env_cols) == 0) { showNotification("请选择环境因子列", type = "warning"); return() }
+
+      result <- tryCatch({
+        mt <- rv$microtable
+        dataset_name <- rv$microtable_name %||% "tmp_microtable"
+        env_str <- paste0('c("', paste(input$env_cols, collapse = '", "'), '")')
+        init_code <- paste0("t_env <- microeco::trans_env$new(\n  dataset = ", dataset_name, ",\n  env_cols = ", env_str, "\n)\n")
+
+        scatter_x_val <- if (nchar(input$scatter_x)) input$scatter_x else 1
+        scatter_y_val <- if (nchar(input$scatter_y)) input$scatter_y else 2
+        scatter_group_val <- if (nchar(input$scatter_group)) input$scatter_group else NULL
+
+        p <- t_env$plot_scatterfit(x = scatter_x_val, y = scatter_y_val, group = scatter_group_val,
+          type = input$scatter_type, cor_method = input$scatter_cor_method,
+          color_values = get_color_palette(input$autocor_color_theme), label_sep = input$scatter_label_sep,
+          label.x.npc = input$scatter_label_x_npc, label.y.npc = input$scatter_label_y_npc,
+          label.x = if (is.na(input$scatter_label_x)) NULL else input$scatter_label_x,
+          label.y = if (is.na(input$scatter_label_y)) NULL else input$scatter_label_y,
+          x_axis_title = if (nchar(input$scatter_x_axis_title)) input$scatter_x_axis_title else "",
+          y_axis_title = if (nchar(input$scatter_y_axis_title)) input$scatter_y_axis_title else "",
+          point_size = input$scatter_point_size, point_alpha = input$scatter_point_alpha,
+          line_size = input$scatter_line_size, line_color = input$scatter_line_color,
+          line_se = input$scatter_line_se, line_se_color = input$scatter_line_se_color,
+          line_alpha = input$scatter_line_alpha, pvalue_trim = input$scatter_pvalue_trim,
+          cor_coef_trim = input$scatter_cor_coef_trim, lm_equation = input$scatter_lm_equation,
+          lm_fir_trim = input$scatter_lm_fir_trim, lm_sec_trim = input$scatter_lm_sec_trim,
+          lm_squ_trim = input$scatter_lm_squ_trim)
+
+        scatter_code <- paste0("p <- t_env$plot_scatterfit(\n  x = \"", scatter_x_val, "\",\n  y = \"", scatter_y_val, "\"\n)\n")
+        code <- paste0(init_code, "# 散点图\n", scatter_code)
+        list(success = TRUE, plot = p, data_result = NULL, code = code)
+      }, error = function(e) list(success = FALSE, error = conditionMessage(e)))
+
+      if (!isTRUE(result$success)) { showNotification(result$error, type = "error", duration = 10); return() }
+      append_code(rv, result$code, "环境因子关联 - scatterfit")
+      local_rv$data_scatterfit <- result$data_result
+      local_rv$plot_scatterfit <- result$plot
+      rv$last_plot <- result$plot
+      showNotification("完成", type = "message")
+    })
+
+    output$env_cor_table <- DT::renderDataTable({
+      dt <- local_rv$data_cor
+      if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+        DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 5),
+          rownames = TRUE, filter = "top")
       }
     })
 
-    output$download_table <- downloadHandler(
-      filename = function() paste0("env_", input$analysis_type, ifelse(input$table_format == ",", ".csv", ".tsv")),
+    output$env_mantel_table <- DT::renderDataTable({
+      dt <- local_rv$data_mantel
+      if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+        DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 5),
+          rownames = TRUE, filter = "top")
+      }
+    })
+
+    output$env_ord_plot <- shiny::renderPlot({
+      req(local_rv$plot_ord)
+      local_rv$plot_ord
+    })
+
+    output$env_ord_table <- DT::renderDataTable({
+      dt <- local_rv$data_ord
+      if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+        DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 5),
+          rownames = TRUE, filter = "top")
+      }
+    })
+
+    output$env_diff_table <- DT::renderDataTable({
+      dt <- local_rv$data_diff
+      if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+        DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 5),
+          rownames = TRUE, filter = "top")
+      }
+    })
+
+    output$env_autocor_table <- DT::renderDataTable({
+      dt <- local_rv$data_autocor
+      if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+        DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 5),
+          rownames = TRUE, filter = "top")
+      }
+    })
+
+    output$env_scatterfit_plot <- shiny::renderPlot({
+      req(local_rv$plot_scatterfit)
+      local_rv$plot_scatterfit
+    })
+
+    output$env_download_table_cor <- downloadHandler(
+      filename = function() {
+        ext <- ifelse(input$env_table_format_cor == ",", ".csv", ".tsv")
+        paste0("env_cor", ext)
+      },
       content = function(file) {
-        dt <- local_rv$data_result
-        if (is.null(dt)) {
-          if (is(local_rv$result_obj, "trans_env") && !is.null(local_rv$result_obj$res_mantel)) {
-            dt <- local_rv$result_obj$res_mantel
-          }
+        dt <- local_rv$data_cor
+        if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+          write.table(as.data.frame(dt), file, sep = input$env_table_format_cor,
+            row.names = TRUE, quote = TRUE)
         }
-        if (!is.null(dt) && is.data.frame(dt)) {
-          write.table(dt, file, sep = input$table_format, row.names = FALSE, quote = TRUE)
+      }
+    )
+
+    output$env_download_table_mantel <- downloadHandler(
+      filename = function() {
+        ext <- ifelse(input$env_table_format_mantel == ",", ".csv", ".tsv")
+        paste0("env_mantel", ext)
+      },
+      content = function(file) {
+        dt <- local_rv$data_mantel
+        if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+          write.table(as.data.frame(dt), file, sep = input$env_table_format_mantel,
+            row.names = TRUE, quote = TRUE)
+        }
+      }
+    )
+
+    output$env_download_table_ord <- downloadHandler(
+      filename = function() {
+        ext <- ifelse(input$env_table_format_ord == ",", ".csv", ".tsv")
+        paste0("env_ordination", ext)
+      },
+      content = function(file) {
+        dt <- local_rv$data_ord
+        if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+          write.table(as.data.frame(dt), file, sep = input$env_table_format_ord,
+            row.names = TRUE, quote = TRUE)
+        }
+      }
+    )
+
+    output$env_download_table_diff <- downloadHandler(
+      filename = function() {
+        ext <- ifelse(input$env_table_format_diff == ",", ".csv", ".tsv")
+        paste0("env_diff", ext)
+      },
+      content = function(file) {
+        dt <- local_rv$data_diff
+        if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+          write.table(as.data.frame(dt), file, sep = input$env_table_format_diff,
+            row.names = TRUE, quote = TRUE)
+        }
+      }
+    )
+
+    output$env_download_table_autocor <- downloadHandler(
+      filename = function() {
+        ext <- ifelse(input$env_table_format_autocor == ",", ".csv", ".tsv")
+        paste0("env_autocor", ext)
+      },
+      content = function(file) {
+        dt <- local_rv$data_autocor
+        if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+          write.table(as.data.frame(dt), file, sep = input$env_table_format_autocor,
+            row.names = TRUE, quote = TRUE)
         }
       }
     )

@@ -13,21 +13,20 @@ mod_func_ui(id, lang = "zh")
 Shiny UI tagList
 }
 \description{
-Provides interface for functional prediction using FAPROTAX (prokaryotes),
-FUNGuild (fungi), Tax4Fun2, and functional redundancy analysis.
-Supports complete parameter options from trans_func class.
+Provides interface for functional prediction analysis including PICRUSt, FAPROTAX,
+BugBase, and redundancy analysis.
 }
 \seealso{
-Other advanced-analysis: 
-\code{\link{mod_env_ui}()},
-\code{\link{mod_ml_ui}()},
-\code{\link{mod_multiomics_ui}()},
-\code{\link{mod_network_ui}()},
-\code{\link{mod_nullmodel_ui}()}
+Other community-analysis: 
+\code{\link{mod_abund_ui}()},
+\code{\link{mod_alpha_ui}()},
+\code{\link{mod_beta_ui}()},
+\code{\link{mod_composition_ui}()},
+\code{\link{mod_core_ui}()}
 }
-\concept{advanced-analysis}
+\concept{community-analysis}
 \keyword{FAPROTAX}
-\keyword{FUNGuild}
+\keyword{PICRUSt}
 \keyword{functional}
 \keyword{microbiome}
 \keyword{prediction}
