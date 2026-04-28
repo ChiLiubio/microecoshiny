@@ -1057,7 +1057,11 @@ mod_import_server <- function(id, rv) {
             if (!is.null(roles$taxonomy)) {
               shiny::incProgress(0.2, detail = "\u6b63\u5728\u8bfb\u53d6 Taxonomy...")
               tax_file <- input$data_files[which(input$data_files$name == roles$taxonomy$name), ]
-              tax <- read_table_auto(tax_file$datapath, force_numeric = FALSE)
+              if (grepl("taxonomy", tolower(tax_file$name))) {
+                tax <- read_taxonomy_file(tax_file$datapath)
+              } else {
+                tax <- read_table_auto(tax_file$datapath, force_numeric = FALSE)
+              }
             }
           }
 

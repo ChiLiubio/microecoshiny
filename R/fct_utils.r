@@ -297,6 +297,17 @@ detect_file_roles <- function(files) {
     }
 
     if (ext %in% c("tsv", "txt", "csv", "xlsx", "xls")) {
+      # 优先检查文件名关键词
+      if (grepl("taxonomy|taxon", name_lower)) {
+        roles$taxonomy <- files[i, ]
+        next
+      }
+
+      if (grepl("sample|meta|map|info", name_lower)) {
+        roles$sample <- files[i, ]
+        next
+      }
+
       file_content <- tryCatch({
         if (ext %in% c("xlsx", "xls")) {
           df_head <- suppressMessages(suppressWarnings(
@@ -405,6 +416,188 @@ read_combined_file <- function(file_info) {
   list(feature = result$df, taxonomy = tax_df)
 }
 
+#' Detect taxonomy file format
+#'
+#' Determines if a taxonomy file is in QIIME2 semicolon-separated format
+#' or already split into separate rank columns.
+#'
+#' @param filepath Path to the taxonomy file
+#' @return List with:
+#'   - format: "qiime2" (needs splitting), "split" (already split), or "unknown"
+#'   - header: TRUE if file has header row
+detect_taxonomy_format <- function(filepath) {
+  ext <- tolower(tools::file_ext(filepath))
+
+  if (ext %in% c("xlsx", "xls")) {
+    df_head <- suppressMessages(suppressWarnings(
+      readxl::read_excel(filepath, n_max = 5, col_names = FALSE)
+    ))
+    if (nrow(df_head) == 0) {
+      return(list(format = "unknown", header = FALSE, skip_rows = 0))
+    }
+    col_names <- as.character(df_head[1, ])
+    col_names_lower <- tolower(col_names)
+
+    rank_keywords <- c("kingdom", "phylum", "class", "order", "family",
+                       "genus", "species", "domain", "taxonomy")
+
+    has_rank_header <- any(sapply(rank_keywords, function(k) {
+      any(grepl(paste0("^", k, "$|^", k, ";|;", k, "$|;", k, ";"), col_names_lower, ignore.case = TRUE))
+    }))
+
+    if (has_rank_header) {
+      return(list(format = "split", header = TRUE, skip_rows = 0))
+    }
+
+    if (nrow(df_head) >= 2) {
+      second_row <- as.character(df_head[2, ])
+      if (length(second_row) >= 2) {
+        second_col <- second_row[2]
+        if (grepl(";", second_col)) {
+          return(list(format = "qiime2", header = TRUE, skip_rows = 0))
+        }
+      }
+    }
+
+    return(list(format = "split", header = TRUE))
+  }
+
+  first_lines <- readLines(filepath, n = 10, warn = FALSE)
+  first_lines <- first_lines[nchar(first_lines) > 0]
+
+  if (length(first_lines) == 0) {
+    return(list(format = "unknown", header = FALSE))
+  }
+
+  # Infer separator from file extension first, then auto-detect if needed
+  ext <- tolower(tools::file_ext(filepath))
+  sep <- switch(ext,
+    "tsv" = "\t",
+    "csv" = ",",
+    "txt" = NULL,
+    NULL
+  )
+  if (is.null(sep)) {
+    first_line_for_detect <- first_lines[1]
+    separators <- c("\t" = "\t", "," = ",", ";" = ";", " " = " ")
+    counts <- sapply(separators, function(s) {
+      parts <- strsplit(first_line_for_detect, s)[[1]]
+      parts <- parts[nchar(parts) > 0]
+      length(parts)
+    })
+    sep <- names(which.max(counts))
+  }
+
+  # Analyze column counts to determine which lines are comments vs headers
+  line_col_counts <- sapply(first_lines, function(line) {
+    parts <- strsplit(line, sep)[[1]]
+    parts <- parts[nchar(parts) > 0]
+    length(parts)
+  })
+
+  max_cols <- max(line_col_counts)
+
+  # Find first line with max columns - that's the header
+  first_max_col_line <- which(line_col_counts == max_cols)[1]
+  header_line <- first_lines[first_max_col_line]
+  header_lower <- tolower(header_line)
+
+  # Check if header contains rank keywords (already split format)
+  rank_keywords <- c("kingdom", "phylum", "class", "order", "family",
+                     "genus", "species", "domain", "taxonomy")
+
+  header_cols <- unlist(strsplit(header_lower, sep))
+  has_rank_header <- any(sapply(rank_keywords, function(k) {
+    any(grepl(paste0("^", k, "$|^", k, ";|;", k, "$|;", k, ";"), header_cols, ignore.case = TRUE))
+  }))
+
+  if (has_rank_header) {
+    return(list(format = "split", header = TRUE, skip_rows = first_max_col_line - 1, sep = sep))
+  }
+
+  # Check if it's QIIME2 format (Feature ID + semicolon-separated taxonomy)
+  if (grepl("feature|otu|asv|sequence", header_lower)) {
+    # Get the second data line to check for semicolons
+    second_max_col_line <- which(line_col_counts == max_cols)[2]
+    if (!is.na(second_max_col_line)) {
+      second_line <- first_lines[second_max_col_line]
+      parts <- strsplit(second_line, sep)[[1]]
+      if (length(parts) >= 2) {
+        second_col <- parts[2]
+        if (!is.na(second_col) && grepl(";", second_col)) {
+          return(list(format = "qiime2", header = TRUE, skip_rows = first_max_col_line - 1, sep = sep))
+        }
+      }
+    }
+    # If no second line found, also check the first line itself
+    if (length(parts) >= 2 && !is.na(parts[2]) && grepl(";", parts[2])) {
+      return(list(format = "qiime2", header = TRUE, skip_rows = first_max_col_line - 1, sep = sep))
+    }
+  }
+
+  return(list(format = "split", header = TRUE, skip_rows = first_max_col_line - 1, sep = sep))
+}
+
+#' Read taxonomy file with auto format detection
+#'
+#' Reads taxonomy file and automatically detects the format:
+#' - QIIME2 semicolon-separated format: splits using file2meco:::split_assignments
+#' - Already split columns: reads directly with read_table_auto
+#'
+#' @param filepath Path to the taxonomy file
+#' @return A data.frame with taxonomy ranks as columns and feature IDs as rownames
+read_taxonomy_file <- function(filepath) {
+  ext <- tolower(tools::file_ext(filepath))
+
+  format_info <- detect_taxonomy_format(filepath)
+
+  if (format_info$format == "unknown") {
+    warning("无法识别 taxonomy 文件格式，尝试作为普通表读取")
+    return(read_table_auto(filepath, force_numeric = FALSE))
+  }
+
+  if (format_info$format == "split") {
+    return(read_table_auto(filepath, force_numeric = FALSE))
+  }
+
+  if (ext %in% c("xlsx", "xls")) {
+    taxonomy_table_raw <- as.data.frame(readxl::read_excel(filepath, col_names = FALSE),
+      stringsAsFactors = FALSE)
+  } else {
+    sep <- format_info$sep %||% "\t"
+    if (format_info$format == "qiime2") {
+      taxonomy_table_raw <- read.table(filepath, sep = sep, skip = format_info$skip_rows,
+        comment.char = "", header = TRUE, stringsAsFactors = FALSE)
+    } else if (format_info$header) {
+      taxonomy_table_raw <- read.table(filepath, sep = sep, skip = format_info$skip_rows,
+        comment.char = "", header = TRUE, stringsAsFactors = FALSE)
+    } else {
+      taxonomy_table_raw <- read.table(filepath, sep = sep, skip = format_info$skip_rows,
+        comment.char = "", header = FALSE, check.names = FALSE, stringsAsFactors = FALSE)
+    }
+  }
+
+  if (nrow(taxonomy_table_raw) == 0) {
+    return(data.frame())
+  }
+
+  if (ncol(taxonomy_table_raw) >= 2) {
+    taxonomy_col <- taxonomy_table_raw[, 2, drop = TRUE]
+  } else {
+    stop("taxonomy 文件格式不正确，列数少于2")
+  }
+
+  taxonomy_table <- file2meco:::split_assignments(
+    taxonomy_col,
+    ranks = c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species"),
+    split = ";"
+  )
+  taxonomy_table <- as.data.frame(taxonomy_table, stringsAsFactors = FALSE)
+  rownames(taxonomy_table) <- taxonomy_table_raw[, 1]
+
+  taxonomy_table
+}
+
 #' Read a table file automatically, detecting format
 #'
 #' @param filepath Path to the file
@@ -426,6 +619,34 @@ read_table_auto <- function(filepath, force_numeric = FALSE) {
     return(df)
   }
 
+  # Infer separator from file extension first, then auto-detect if needed
+  infer_separator_from_ext <- function(filepath) {
+    ext <- tolower(tools::file_ext(filepath))
+    sep <- switch(ext,
+      "tsv" = "\t",
+      "csv" = ",",
+      "txt" = NULL,  # Unknown, need auto detection
+      NULL
+    )
+    return(sep)
+  }
+
+  detect_separator <- function(first_line) {
+    separators <- c("\t" = "\t", "," = ",", ";" = ";", " " = " ")
+    counts <- sapply(separators, function(sep) {
+      parts <- strsplit(first_line, sep)[[1]]
+      parts <- parts[nchar(parts) > 0]
+      length(parts)
+    })
+    return(names(which.max(counts)))
+  }
+
+  sep <- infer_separator_from_ext(filepath)
+  if (is.null(sep)) {
+    first_line <- readLines(filepath, n = 1, warn = FALSE)
+    sep <- detect_separator(first_line)
+  }
+
   # Try to detect separator for text files
   # Read first few lines to detect
   first_lines <- readLines(filepath, n = 10, warn = FALSE)
@@ -435,22 +656,69 @@ read_table_auto <- function(filepath, force_numeric = FALSE) {
     stop("File is empty")
   }
 
-  # Check if it's a QIIME2 BIOM-converted TSV (has $ comment line)
-  has_qiime2_header <- any(grepl("^#", first_lines))
+  # Analyze column counts to determine which lines are comments vs headers
+  line_col_counts <- sapply(first_lines, function(line) {
+    parts <- strsplit(line, sep)[[1]]
+    parts <- parts[nchar(parts) > 0]
+    length(parts)
+  })
 
-  if (has_qiime2_header) {
-    data_start <- which(!grepl("^#", first_lines))
-    if (length(data_start) > 0) {
-      df <- read.table(filepath, sep = "\t", header = TRUE,
-                       comment.char = "#", row.names = 1,
-                       check.names = FALSE, stringsAsFactors = FALSE)
-      df <- as.data.frame(df)
-      if (force_numeric) {
-        result <- convert_to_numeric_safe(df)
-        df <- result$df
+  max_cols <- max(line_col_counts)
+  data_start_line <- which.max(line_col_counts)
+
+  # Count how many lines have the maximum column count
+  max_col_line_count <- sum(line_col_counts == max_cols)
+
+  # Determine skip rows based on column count comparison
+  skip_rows <- 0
+
+  if (max_col_line_count >= 1) {
+    # Find first line with max columns - that's likely a header or data
+    first_max_col_line <- which(line_col_counts == max_cols)[1]
+
+    # If first line has max columns, it's likely header or data
+    if (first_max_col_line == 1) {
+      # First line has max columns - check if it starts with # (which would be a header)
+      if (grepl("^#", first_lines[1])) {
+        # First line starts with # and has max columns = likely header like #OTU ID
+        # Check if there's another line with same columns before a line with fewer columns
+        # If lines 1 and 2 both have max columns, line 1 is header
+        if (length(first_lines) >= 2 && line_col_counts[2] == max_cols) {
+          # Two consecutive lines with max columns = first is header
+          skip_rows <- 1
+        } else if (length(first_lines) >= 2 && line_col_counts[2] < max_cols) {
+          # First line has max, second has fewer = first is header (like #OTU ID)
+          skip_rows <- 0  # Don't skip, read.table will use line 1 as header
+        }
+      } else {
+        # First line doesn't start with # = normal header
+        skip_rows <- 0
       }
-      return(df)
+    } else {
+      # First line doesn't have max columns = it's a comment
+      # Skip all lines before the first max column line
+      skip_rows <- first_max_col_line - 1
     }
+  }
+
+  # Try reading with the determined skip value
+  if (skip_rows >= 0) {
+    tryCatch({
+      df <- read.table(filepath, sep = sep, header = TRUE,
+                       skip = skip_rows, comment.char = "",
+                       row.names = 1, check.names = FALSE,
+                       stringsAsFactors = FALSE)
+      df <- as.data.frame(df)
+
+      # Verify the read was successful (has more than 0 rows)
+      if (nrow(df) > 0) {
+        if (force_numeric) {
+          result <- convert_to_numeric_safe(df)
+          df <- result$df
+        }
+        return(df)
+      }
+    }, error = function(e) NULL)
   }
 
   tryCatch({

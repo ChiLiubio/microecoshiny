@@ -44,14 +44,41 @@ mod_env_ui <- function(id, lang = "zh") {
           h4(tr("分析方法", "Analysis Methods")),
           fluidRow(
             column(12, shiny::radioButtons(ns("analysis_type"), tr("分析类型", "Analysis Type"),
-              choices = setNames(c("cor", "mantel", "ordination", "diff", "autocor", "scatterfit"),
-                                 c(tr("相关性分析 (cal_cor)", "Correlation Analysis (cal_cor)"),
-                                   tr("Mantel 检验 (cal_mantel)", "Mantel Test (cal_mantel)"),
-                                   tr("约束排序 (cal_ordination)", "Constrained Ordination (cal_ordination)"),
+              choices = setNames(c("autocor", "cor", "diff", "ordination", "mantel", "scatterfit"),
+                                 c(tr("自相关 (cal_autocor)", "Autocorrelation (cal_autocor)"),
+                                   tr("类群相关性 (cal_cor)", "Correlation Analysis (cal_cor)"),
                                    tr("差异检验 (cal_diff)", "Difference Test (cal_diff)"),
-                                   tr("自相关 (cal_autocor)", "Autocorrelation (cal_autocor)"),
+                                   tr("约束排序 (cal_ordination)", "Constrained Ordination (cal_ordination)"),
+                                   tr("Mantel 检验 (cal_mantel)", "Mantel Test (cal_mantel)"),
                                    tr("散点图 (plot_scatterfit)", "Scatter Plot (plot_scatterfit)"))),
-              selected = "cor", inline = TRUE))
+              selected = "autocor", inline = TRUE))
+          ),
+          shiny::conditionalPanel(condition = "input.analysis_type == 'autocor'", ns = ns,
+            h4(tr("cal_autocor 参数", "cal_autocor Parameters")),
+            fluidRow(
+              column(3, shinyWidgets::materialSwitch(ns("autocor_ggpairs"), "ggpairs", value = TRUE, status = "primary")),
+              column(3, shiny::numericInput(ns("autocor_alpha"), "alpha", value = 0.8, min = 0.1, max = 1, step = 0.1)),
+              column(3, shiny::selectInput(ns("autocor_color_theme"), "color_theme",
+                choices = c("Dark2", "Set1", "Set2", "Set3", "Paired", "Spectral", "Viridis"), selected = "Dark2")),
+              column(3)
+            ),
+            hr(),
+            fluidRow(
+              column(4, shiny::actionButton(ns("run_autocor"), tr("🏁 执行分析", "🏁 Run Analysis"),
+                icon = icon("play"), class = "btn-success", width = "200px")),
+              column(2, shiny::selectInput(ns("env_table_format_autocor"), tr("表格", "Table"),
+                choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
+              column(2, shiny::downloadButton(ns("env_download_table_autocor"), tr("📥 表格下载", "📥 Download Table"),
+                class = "btn-outline-info", width = "100%")),
+              column(4)
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("📊 结果表", "📊 Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
+                  DT::dataTableOutput(ns("env_autocor_table"))
+                )
+              )
+            )
           ),
           shiny::conditionalPanel(condition = "input.analysis_type == 'cor'", ns = ns,
             h4(tr("cal_cor 参数", "cal_cor Parameters")),
@@ -81,30 +108,11 @@ mod_env_ui <- function(id, lang = "zh") {
               )
             ),
             fluidRow(
-            column(3, shiny::selectInput(ns("cor_group_use"), "group_use", choices = character(0))),
-            column(3, shiny::selectInput(ns("cor_group_select"), "group_select", choices = character(0))),
-            column(6)
-          ),
-          fluidRow(
-            column(2, shiny::actionButton(ns("run_cor"), tr("🏁 执行分析", "🏁 Run Analysis"),
-              icon = icon("play"), class = "btn-success", width = "200px"))
-          ),
-          fluidRow(
-            column(12,
-              bs4Dash::box(title = tr("📊 结果表", "📊 Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
-                DT::dataTableOutput(ns("env_cor_table"))
-              )
-            )
-          ),
-          fluidRow(
-            column(2, shiny::selectInput(ns("env_table_format_cor"), tr("表格", "Table"),
-              choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
-            column(2, shiny::downloadButton(ns("env_download_table_cor"), tr("📥 表格下载", "📥 Download Table"),
-              class = "btn-outline-info", width = "100%")),
-            column(8)
-          )
-        ),
-          shiny::conditionalPanel(condition = "input.analysis_type == 'cor'", ns = ns,
+              column(3, shiny::selectInput(ns("cor_group_use"), "group_use", choices = character(0))),
+              column(3, shiny::selectInput(ns("cor_group_select"), "group_select", choices = character(0))),
+              column(6)
+            ),
+            hr(),
             h4(tr("plot_cor 参数", "plot_cor Parameters")),
             fluidRow(
               column(2, shiny::textInput(ns("cor_color_vector"), "color_vector",
@@ -133,38 +141,83 @@ mod_env_ui <- function(id, lang = "zh") {
               column(2, shiny::textInput(ns("cor_legend_title"), "legend_title", value = "")),
               column(2, shiny::textInput(ns("cor_font_family"), "font_family", value = "", placeholder = "\u5b57\u4f53\u540d\u79f0")),
               column(2, shinyWidgets::materialSwitch(ns("cor_keep_prefix"), "keep_prefix", value = TRUE, status = "info"))
-            )
-          ),
-          shiny::conditionalPanel(condition = "input.analysis_type == 'mantel'", ns = ns,
-            h4(tr("cal_mantel 参数", "cal_mantel Parameters")),
-            fluidRow(
-              column(2, shiny::selectInput(ns("mantel_use_measure"), "use_measure",
-                choices = c("bray", "jaccard", "unifrac", "wunifrac"), selected = "bray")),
-              column(2, shiny::selectInput(ns("mantel_method"), "method",
-                choices = c("pearson", "spearman", "kendall"), selected = "pearson")),
-              column(2, shiny::selectInput(ns("mantel_p_adjust_method"), "p_adjust_method",
-                choices = c("fdr", "holm", "bonferroni", "none", "BH", "BY"), selected = "fdr")),
-              column(2, shinyWidgets::materialSwitch(ns("mantel_partial"), "partial_mantel", value = FALSE, status = "warning")),
-              column(2, shiny::selectInput(ns("mantel_by_group"), "by_group", choices = setNames("", tr("无", "None")))),
-              column(2)
             ),
+            hr(),
             fluidRow(
-              column(2, shiny::actionButton(ns("run_mantel"), tr("🏁 执行分析", "🏁 Run Analysis"),
-                icon = icon("play"), class = "btn-success", width = "200px"))
+              column(4, shiny::actionButton(ns("run_cor"), tr("🏁 执行分析", "🏁 Run Analysis"),
+                icon = icon("play"), class = "btn-success", width = "200px")),
+              column(2, shiny::selectInput(ns("env_table_format_cor"), tr("表格", "Table"),
+                choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
+              column(2, shiny::downloadButton(ns("env_download_table_cor"), tr("📥 表格下载", "📥 Download Table"),
+                class = "btn-outline-info", width = "100%")),
+              column(4)
             ),
             fluidRow(
               column(12,
                 bs4Dash::box(title = tr("📊 结果表", "📊 Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
-                  DT::dataTableOutput(ns("env_mantel_table"))
+                  DT::dataTableOutput(ns("env_cor_table"))
                 )
               )
+            )
+          ),
+          shiny::conditionalPanel(condition = "input.analysis_type == 'diff'", ns = ns,
+            h4(tr("检验方法 (method)", "Test Method (method)")),
+            fluidRow(
+              column(12, shiny::radioButtons(ns("diff_method"), tr("方法 (method)", "method"),
+                choices = c("KW", "KW_dunn", "wilcox", "t.test", "anova", "scheirerRayHare", "lm", "lme", "glmm"),
+                selected = "wilcox", inline = TRUE))
+            ),
+            hr(),
+            h4(tr("cal_diff 参数", "cal_diff Parameters")),
+            fluidRow(
+              column(3, shiny::selectInput(ns("diff_p_adjust_method"), "p_adjust_method",
+                choices = c("fdr", "holm", "bonferroni", "none", "BH", "BY"), selected = "fdr")),
+              column(3, shiny::numericInput(ns("diff_alpha_level"), "alpha", value = 0.05, min = 0.01, max = 0.1)),
+              column(6)
             ),
             fluidRow(
-              column(2, shiny::selectInput(ns("env_table_format_mantel"), tr("表格", "Table"),
+              column(6, shiny::textInput(ns("diff_formula"), tr("formula (lm/lme/glmm)", "formula"),
+                value = "~ Group"))
+            ),
+            hr(),
+            h4(tr("plot_diff 参数", "plot_diff Parameters")),
+            fluidRow(
+              column(2, shiny::selectInput(ns("diff_measure"), tr("measure (环境因子)", "measure"), choices = character(0))),
+              column(2, shiny::selectInput(ns("diff_plot_type"), "plot_type",
+                choices = c("ggboxplot", "ggdotplot", "ggviolin", "ggstripchart", "ggerrorplot", "errorbar", "barerrorbar"),
+                selected = "ggboxplot")),
+              column(2, shiny::textInput(ns("diff_color_vector"), "color_values",
+                value = "RColorBrewer::brewer.pal(8, 'Dark2')")),
+              column(2, shiny::selectInput(ns("diff_add"), "add (\u53e0\u52a0\u5143\u7d20)",
+                choices = c("none" = "", "jitter", "dotplot", "boxplot", "violin"), selected = "")),
+              column(2, shinyWidgets::materialSwitch(ns("diff_add_sig"), "add_significance", value = TRUE, status = "primary")),
+              column(2)
+            ),
+            fluidRow(
+              column(2, shiny::numericInput(ns("diff_xtext_angle"), "xtext_angle", value = 30, min = 0, max = 90)),
+              column(2, shiny::numericInput(ns("diff_xtext_size"), "xtext_size", value = 13, min = 6, max = 20)),
+              column(2, shiny::numericInput(ns("diff_ytitle_size"), "ytitle_size", value = 17, min = 10, max = 24)),
+              column(2, shiny::numericInput(ns("diff_bar_width"), "bar_width", value = 0.9, min = 0.3, max = 1, step = 0.1)),
+              column(2, shiny::selectInput(ns("diff_add_sig_label"), "add_sig_label",
+                choices = c("Significance", "Letter", "P.adj"), selected = "Significance")),
+              column(2)
+            ),
+            hr(),
+            fluidRow(
+              column(4, shiny::actionButton(ns("run_diff"), tr("🏁 执行分析", "🏁 Run Analysis"),
+                icon = icon("play"), class = "btn-success", width = "200px")),
+              column(2, shiny::selectInput(ns("env_table_format_diff"), tr("表格", "Table"),
                 choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
-              column(2, shiny::downloadButton(ns("env_download_table_mantel"), tr("📥 表格下载", "📥 Download Table"),
+              column(2, shiny::downloadButton(ns("env_download_table_diff"), tr("📥 表格下载", "📥 Download Table"),
                 class = "btn-outline-info", width = "100%")),
-              column(8)
+              column(4)
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("📊 结果表", "📊 Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
+                  DT::dataTableOutput(ns("env_diff_table"))
+                )
+              )
             )
           ),
           shiny::conditionalPanel(condition = "input.analysis_type == 'ordination'", ns = ns,
@@ -196,9 +249,25 @@ mod_env_ui <- function(id, lang = "zh") {
               column(3, shinyWidgets::materialSwitch(ns("ord_anova"), "\u663e\u8457\u6027\u68c0\u9a8c (anova)", value = FALSE, status = "primary")),
               column(3, shinyWidgets::materialSwitch(ns("ord_envfit"), "\u73af\u5883\u5411\u91cf\u62df\u5408 (envfit)", value = FALSE, status = "success")),
               column(6)
-            )
-          ),
-          shiny::conditionalPanel(condition = "input.analysis_type == 'ordination'", ns = ns,
+            ),
+            hr(),
+            fluidRow(
+              column(4, shiny::actionButton(ns("run_ordination"), tr("🏁 执行分析", "🏁 Run Analysis"),
+                icon = icon("play"), class = "btn-success", width = "200px")),
+              column(2, shiny::selectInput(ns("env_table_format_ord"), tr("表格", "Table"),
+                choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
+              column(2, shiny::downloadButton(ns("env_download_table_ord"), tr("📥 表格下载", "📥 Download Table"),
+                class = "btn-outline-info", width = "100%")),
+              column(4)
+            ),
+            fluidRow(
+              column(12,
+                bs4Dash::box(title = tr("📊 结果表", "📊 Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
+                  DT::dataTableOutput(ns("env_ord_table"))
+                )
+              )
+            ),
+            hr(),
             h4("plot_ordination \u53c2\u6570"),
             fluidRow(
               column(2, shiny::selectInput(ns("ord_plot_color"), "plot_color", choices = character(0))),
@@ -246,116 +315,44 @@ mod_env_ui <- function(id, lang = "zh") {
               column(3, shiny::selectInput(ns("ord_add_sample_label"), "add_sample_label (\u6807\u7b7e\u5217)", choices = c("\u65e0" = "", character(0)))),
               column(6)
             ),
-            fluidRow(
-              column(2, shiny::actionButton(ns("run_ordination"), tr("🏁 执行分析", "🏁 Run Analysis"),
-                icon = icon("play"), class = "btn-success", width = "200px"))
-            ),
-            fluidRow(
-              column(12,
-                bs4Dash::box(title = tr("📊 结果表", "📊 Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
-                  DT::dataTableOutput(ns("env_ord_table"))
-                )
-              )
-            ),
+            hr(),
             fluidRow(
               column(12,
                 bs4Dash::box(title = tr("📊 图区", "📊 Plot Area"), status = "info", solidHeader = TRUE, width = NULL,
                   shinycssloaders::withSpinner(shiny::plotOutput(ns("env_ord_plot"), height = "550px"))
                 )
               )
-            ),
-            fluidRow(
-              column(2, shiny::selectInput(ns("env_table_format_ord"), tr("表格", "Table"),
-                choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
-              column(2, shiny::downloadButton(ns("env_download_table_ord"), tr("📥 表格下载", "📥 Download Table"),
-                class = "btn-outline-info", width = "100%")),
-              column(8)
             )
           ),
-          shiny::conditionalPanel(condition = "input.analysis_type == 'diff'", ns = ns,
-            h4(tr("cal_diff 参数", "cal_diff Parameters")),
+          shiny::conditionalPanel(condition = "input.analysis_type == 'mantel'", ns = ns,
+            h4(tr("cal_mantel 参数", "cal_mantel Parameters")),
             fluidRow(
-              column(2, shiny::selectInput(ns("diff_method"), "method",
-                choices = c("KW", "KW_dunn", "wilcox", "t.test", "anova", "scheirerRayHare", "lm", "lme", "glmm"),
-                selected = "KW")),
-              column(2, shiny::selectInput(ns("diff_p_adjust_method"), "p_adjust_method",
+              column(2, shiny::selectInput(ns("mantel_use_measure"), "use_measure",
+                choices = c("bray", "jaccard", "unifrac", "wunifrac"), selected = "bray")),
+              column(2, shiny::selectInput(ns("mantel_method"), "method",
+                choices = c("pearson", "spearman", "kendall"), selected = "pearson")),
+              column(2, shiny::selectInput(ns("mantel_p_adjust_method"), "p_adjust_method",
                 choices = c("fdr", "holm", "bonferroni", "none", "BH", "BY"), selected = "fdr")),
-              column(2, shiny::numericInput(ns("diff_alpha_level"), "alpha", value = 0.05, min = 0.01, max = 0.1)),
-              column(6)
-            ),
-            fluidRow(
-              column(6, shiny::textInput(ns("diff_formula"), tr("formula (lm/lme/glmm)", "formula"),
-                value = "~ Group"))
-            )
-          ),
-          shiny::conditionalPanel(condition = "input.analysis_type == 'diff'", ns = ns,
-            h4(tr("plot_diff 参数", "plot_diff Parameters")),
-            fluidRow(
-              column(2, shiny::selectInput(ns("diff_measure"), tr("measure (环境因子)", "measure"), choices = character(0))),
-              column(2, shiny::selectInput(ns("diff_plot_type"), "plot_type",
-                choices = c("ggboxplot", "ggdotplot", "ggviolin", "ggstripchart", "ggerrorplot", "errorbar", "barerrorbar"),
-                selected = "ggboxplot")),
-              column(2, shiny::textInput(ns("diff_color_vector"), "color_values",
-                value = "RColorBrewer::brewer.pal(8, 'Dark2')")),
-              column(2, shiny::selectInput(ns("diff_add"), "add (\u53e0\u52a0\u5143\u7d20)",
-                choices = c("none" = "", "jitter", "dotplot", "boxplot", "violin"), selected = "")),
-              column(2, shinyWidgets::materialSwitch(ns("diff_add_sig"), "add_significance", value = TRUE, status = "primary")),
+              column(2, shinyWidgets::materialSwitch(ns("mantel_partial"), "partial_mantel", value = FALSE, status = "warning")),
+              column(2, shiny::selectInput(ns("mantel_by_group"), "by_group", choices = setNames("", tr("无", "None")))),
               column(2)
             ),
+            hr(),
             fluidRow(
-              column(2, shiny::numericInput(ns("diff_xtext_angle"), "xtext_angle", value = 30, min = 0, max = 90)),
-              column(2, shiny::numericInput(ns("diff_xtext_size"), "xtext_size", value = 13, min = 6, max = 20)),
-              column(2, shiny::numericInput(ns("diff_ytitle_size"), "ytitle_size", value = 17, min = 10, max = 24)),
-              column(2, shiny::numericInput(ns("diff_bar_width"), "bar_width", value = 0.9, min = 0.3, max = 1, step = 0.1)),
-              column(2, shiny::selectInput(ns("diff_add_sig_label"), "add_sig_label",
-                choices = c("Significance", "Letter", "P.adj"), selected = "Significance")),
-              column(2)
-            ),
-            fluidRow(
-              column(2, shiny::actionButton(ns("run_diff"), tr("🏁 执行分析", "🏁 Run Analysis"),
-                icon = icon("play"), class = "btn-success", width = "200px"))
+              column(4, shiny::actionButton(ns("run_mantel"), tr("🏁 执行分析", "🏁 Run Analysis"),
+                icon = icon("play"), class = "btn-success", width = "200px")),
+              column(2, shiny::selectInput(ns("env_table_format_mantel"), tr("表格", "Table"),
+                choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
+              column(2, shiny::downloadButton(ns("env_download_table_mantel"), tr("📥 表格下载", "📥 Download Table"),
+                class = "btn-outline-info", width = "100%")),
+              column(4)
             ),
             fluidRow(
               column(12,
                 bs4Dash::box(title = tr("📊 结果表", "📊 Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
-                  DT::dataTableOutput(ns("env_diff_table"))
+                  DT::dataTableOutput(ns("env_mantel_table"))
                 )
               )
-            ),
-            fluidRow(
-              column(2, shiny::selectInput(ns("env_table_format_diff"), tr("表格", "Table"),
-                choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
-              column(2, shiny::downloadButton(ns("env_download_table_diff"), tr("📥 表格下载", "📥 Download Table"),
-                class = "btn-outline-info", width = "100%")),
-              column(8)
-            )
-          ),
-          shiny::conditionalPanel(condition = "input.analysis_type == 'autocor'", ns = ns,
-            h4(tr("cal_autocor 参数", "cal_autocor Parameters")),
-            fluidRow(
-              column(3, shinyWidgets::materialSwitch(ns("autocor_ggpairs"), "ggpairs", value = TRUE, status = "primary")),
-              column(3, shiny::numericInput(ns("autocor_alpha"), "alpha", value = 0.8, min = 0.1, max = 1, step = 0.1)),
-              column(3, shiny::selectInput(ns("autocor_color_theme"), "color_theme",
-                choices = c("Dark2", "Set1", "Set2", "Set3", "Paired", "Spectral", "Viridis"), selected = "Dark2")),
-              column(3)
-            ),
-            fluidRow(
-              column(2, shiny::actionButton(ns("run_autocor"), tr("🏁 执行分析", "🏁 Run Analysis"),
-                icon = icon("play"), class = "btn-success", width = "200px"))
-            ),
-            fluidRow(
-              column(12,
-                bs4Dash::box(title = tr("📊 结果表", "📊 Results Table"), status = "secondary", solidHeader = TRUE, width = NULL,
-                  DT::dataTableOutput(ns("env_autocor_table"))
-                )
-              )
-            ),
-            fluidRow(
-              column(2, shiny::selectInput(ns("env_table_format_autocor"), tr("表格", "Table"),
-                choices = c("CSV" = ",", "TSV" = "\t"), selected = ",")),
-              column(2, shiny::downloadButton(ns("env_download_table_autocor"), tr("📥 表格下载", "📥 Download Table"),
-                class = "btn-outline-info", width = "100%")),
-              column(8)
             )
           ),
           shiny::conditionalPanel(condition = "input.analysis_type == 'scatterfit'", ns = ns,
@@ -401,8 +398,9 @@ mod_env_ui <- function(id, lang = "zh") {
               column(2, shiny::textInput(ns("scatter_y_axis_title"), "y_axis_title", value = "")),
               column(4)
             ),
+            hr(),
             fluidRow(
-              column(2, shiny::actionButton(ns("run_scatterfit"), tr("🏁 执行分析", "🏁 Run Analysis"),
+              column(12, shiny::actionButton(ns("run_scatterfit"), tr("🏁 执行分析", "🏁 Run Analysis"),
                 icon = icon("play"), class = "btn-success", width = "200px"))
             ),
             fluidRow(
@@ -412,15 +410,6 @@ mod_env_ui <- function(id, lang = "zh") {
                 )
               )
             )
-          ),
-          fluidRow(
-            column(2, shiny::actionButton(ns("run_env"), tr("\U0001f4ca 执行", "\U0001f4ca Execute"), icon = icon("play"), class = "btn-primary", width = "100%")),
-            column(2, shiny::selectInput(ns("image_format"), tr("格式", "Format"),
-              choices = c("PNG" = "png", "PDF" = "pdf", "SVG" = "svg", "TIFF" = "tiff"), selected = "png")),
-            column(1, shiny::numericInput(ns("save_width"), tr("宽 (width)", "Width"), value = 10, min = 4, max = 20)),
-            column(1, shiny::numericInput(ns("save_height"), tr("高 (height)", "Height"), value = 7, min = 3, max = 15)),
-            column(2, shiny::numericInput(ns("save_dpi"), "DPI", value = 300, min = 72, max = 600, step = 72)),
-            column(2, shiny::actionButton(ns("save_plot_btn"), tr("\U0001f4e5保存图片", "\U0001f4e5Save Plot"), icon = icon("save"), class = "btn-outline-secondary", width = "100%"))
           )
         )
       )
@@ -602,6 +591,34 @@ mod_env_server <- function(id, rv) {
       }, error = function(e) RColorBrewer::brewer.pal(8, "Dark2"))
     }
 
+    observeEvent(input$run_autocor, {
+      if (!check_microtable(rv)) { showNotification("请先导入数据", type = "error"); return() }
+      if (length(input$env_cols) == 0) { showNotification("请选择环境因子列", type = "warning"); return() }
+
+      result <- tryCatch({
+        mt <- rv$microtable
+        dataset_name <- rv$microtable_name %||% "tmp_microtable"
+        env_str <- paste0('c("', paste(input$env_cols, collapse = '", "'), '")')
+        init_code <- paste0("t_env <- microeco::trans_env$new(\n  dataset = ", dataset_name, ",\n  env_cols = ", env_str, "\n)\n")
+
+        t_env <- microeco::trans_env$new(dataset = mt, env_cols = input$env_cols)
+        group_val <- if (nchar(input$env_group)) input$env_group else NULL
+        p <- t_env$cal_autocor(group = group_val, ggpairs = input$autocor_ggpairs,
+          color_values = get_color_palette(input$autocor_color_theme), alpha = input$autocor_alpha)
+
+        autocor_code <- paste0("t_env$cal_autocor()\n")
+        code <- paste0(init_code, "# 自相关\n", autocor_code)
+        list(success = TRUE, plot = p, data_result = NULL, code = code)
+      }, error = function(e) list(success = FALSE, error = conditionMessage(e)))
+
+      if (!isTRUE(result$success)) { showNotification(result$error, type = "error", duration = 10); return() }
+      append_code(rv, result$code, "环境因子关联 - autocor")
+      local_rv$data_autocor <- result$data_result
+      local_rv$plot_autocor <- result$plot
+      rv$last_plot <- result$plot
+      showNotification("完成", type = "message")
+    })
+
     observeEvent(input$run_cor, {
       if (!check_microtable(rv)) { showNotification("请先导入数据", type = "error"); return() }
       if (length(input$env_cols) == 0) { showNotification("请选择环境因子列", type = "warning"); return() }
@@ -640,7 +657,7 @@ mod_env_server <- function(id, rv) {
 
         cor_code <- paste0("t_env$cal_cor(\n  use_data = \"", input$cor_use_data, "\",\n  method = \"", input$cor_method, "\"\n)\n",
           "p <- t_env$plot_cor()\n")
-        code <- paste0(init_code, "# 相关性分析\n", cor_code)
+        code <- paste0(init_code, "# 类群相关性分析\n", cor_code)
         list(success = TRUE, plot = p, data_result = t_env$res_cor, code = code)
       }, error = function(e) list(success = FALSE, error = conditionMessage(e)))
 
@@ -652,7 +669,7 @@ mod_env_server <- function(id, rv) {
       showNotification("完成", type = "message")
     })
 
-    observeEvent(input$run_mantel, {
+    observeEvent(input$run_diff, {
       if (!check_microtable(rv)) { showNotification("请先导入数据", type = "error"); return() }
       if (length(input$env_cols) == 0) { showNotification("请选择环境因子列", type = "warning"); return() }
 
@@ -662,20 +679,33 @@ mod_env_server <- function(id, rv) {
         env_str <- paste0('c("', paste(input$env_cols, collapse = '", "'), '")')
         init_code <- paste0("t_env <- microeco::trans_env$new(\n  dataset = ", dataset_name, ",\n  env_cols = ", env_str, "\n)\n")
 
-        by_group_mantel <- if (nchar(input$mantel_by_group)) input$mantel_by_group else NULL
-        t_env <- microeco::trans_env$new(dataset = mt, env_cols = input$env_cols)
-        t_env$cal_mantel(use_measure = input$mantel_use_measure, method = input$mantel_method,
-          p_adjust_method = input$mantel_p_adjust_method, partial_mantel = input$mantel_partial,
-          by_group = by_group_mantel)
+        group_val <- if (nchar(input$env_group)) input$env_group else NULL
+        by_group_val <- if (nchar(input$env_by_group)) input$env_by_group else NULL
+        formula_val <- if (nchar(input$diff_formula)) input$diff_formula else NULL
 
-        mantel_code <- paste0("t_env$cal_mantel(\n  use_measure = \"", input$mantel_use_measure, "\"\n)\n")
-        code <- paste0(init_code, "# Mantel 检验\n", mantel_code)
-        list(success = TRUE, data_result = t_env$res_mantel, code = code)
+        t_env <- microeco::trans_env$new(dataset = mt, env_cols = input$env_cols)
+        t_env$cal_diff(group = group_val, by_group = by_group_val, method = input$diff_method,
+          p_adjust_method = input$diff_p_adjust_method, alpha = input$diff_alpha_level, formula = formula_val)
+
+        measure_val <- if (nchar(input$diff_measure)) input$diff_measure else NULL
+        add_val <- if (nchar(input$diff_add)) input$diff_add else NULL
+        p <- t_env$plot_diff(measure = measure_val, plot_type = input$diff_plot_type,
+          color_values = RColorBrewer::brewer.pal(8, "Dark2"), add = add_val,
+          add_sig = input$diff_add_sig, add_sig_label = input$diff_add_sig_label,
+          xtext_angle = input$diff_xtext_angle, xtext_size = input$diff_xtext_size,
+          ytitle_size = input$diff_ytitle_size, bar_width = input$diff_bar_width)
+
+        diff_code <- paste0("t_env$cal_diff(\n  method = \"", input$diff_method, "\"\n)\n",
+          "p <- t_env$plot_diff()\n")
+        code <- paste0(init_code, "# 差异检验\n", diff_code)
+        list(success = TRUE, plot = p, data_result = t_env$res_diff, code = code)
       }, error = function(e) list(success = FALSE, error = conditionMessage(e)))
 
       if (!isTRUE(result$success)) { showNotification(result$error, type = "error", duration = 10); return() }
-      append_code(rv, result$code, "环境因子关联 - mantel")
-      local_rv$data_mantel <- result$data_result
+      append_code(rv, result$code, "环境因子关联 - diff")
+      local_rv$data_diff <- result$data_result
+      local_rv$plot_diff <- result$plot
+      rv$last_plot <- result$plot
       showNotification("完成", type = "message")
     })
 
@@ -740,7 +770,7 @@ mod_env_server <- function(id, rv) {
       showNotification("完成", type = "message")
     })
 
-    observeEvent(input$run_diff, {
+    observeEvent(input$run_mantel, {
       if (!check_microtable(rv)) { showNotification("请先导入数据", type = "error"); return() }
       if (length(input$env_cols) == 0) { showNotification("请选择环境因子列", type = "warning"); return() }
 
@@ -750,60 +780,20 @@ mod_env_server <- function(id, rv) {
         env_str <- paste0('c("', paste(input$env_cols, collapse = '", "'), '")')
         init_code <- paste0("t_env <- microeco::trans_env$new(\n  dataset = ", dataset_name, ",\n  env_cols = ", env_str, "\n)\n")
 
-        group_val <- if (nchar(input$env_group)) input$env_group else NULL
-        by_group_val <- if (nchar(input$env_by_group)) input$env_by_group else NULL
-        formula_val <- if (nchar(input$diff_formula)) input$diff_formula else NULL
-
+        by_group_mantel <- if (nchar(input$mantel_by_group)) input$mantel_by_group else NULL
         t_env <- microeco::trans_env$new(dataset = mt, env_cols = input$env_cols)
-        t_env$cal_diff(group = group_val, by_group = by_group_val, method = input$diff_method,
-          p_adjust_method = input$diff_p_adjust_method, alpha = input$diff_alpha_level, formula = formula_val)
+        t_env$cal_mantel(use_measure = input$mantel_use_measure, method = input$mantel_method,
+          p_adjust_method = input$mantel_p_adjust_method, partial_mantel = input$mantel_partial,
+          by_group = by_group_mantel)
 
-        measure_val <- if (nchar(input$diff_measure)) input$diff_measure else NULL
-        add_val <- if (nchar(input$diff_add)) input$diff_add else NULL
-        p <- t_env$plot_diff(measure = measure_val, plot_type = input$diff_plot_type,
-          color_values = RColorBrewer::brewer.pal(8, "Dark2"), add = add_val,
-          add_sig = input$diff_add_sig, add_sig_label = input$diff_add_sig_label,
-          xtext_angle = input$diff_xtext_angle, xtext_size = input$diff_xtext_size,
-          ytitle_size = input$diff_ytitle_size, bar_width = input$diff_bar_width)
-
-        diff_code <- paste0("t_env$cal_diff(\n  method = \"", input$diff_method, "\"\n)\n",
-          "p <- t_env$plot_diff()\n")
-        code <- paste0(init_code, "# 差异检验\n", diff_code)
-        list(success = TRUE, plot = p, data_result = t_env$res_diff, code = code)
+        mantel_code <- paste0("t_env$cal_mantel(\n  use_measure = \"", input$mantel_use_measure, "\"\n)\n")
+        code <- paste0(init_code, "# Mantel 检验\n", mantel_code)
+        list(success = TRUE, data_result = t_env$res_mantel, code = code)
       }, error = function(e) list(success = FALSE, error = conditionMessage(e)))
 
       if (!isTRUE(result$success)) { showNotification(result$error, type = "error", duration = 10); return() }
-      append_code(rv, result$code, "环境因子关联 - diff")
-      local_rv$data_diff <- result$data_result
-      local_rv$plot_diff <- result$plot
-      rv$last_plot <- result$plot
-      showNotification("完成", type = "message")
-    })
-
-    observeEvent(input$run_autocor, {
-      if (!check_microtable(rv)) { showNotification("请先导入数据", type = "error"); return() }
-      if (length(input$env_cols) == 0) { showNotification("请选择环境因子列", type = "warning"); return() }
-
-      result <- tryCatch({
-        mt <- rv$microtable
-        dataset_name <- rv$microtable_name %||% "tmp_microtable"
-        env_str <- paste0('c("', paste(input$env_cols, collapse = '", "'), '")')
-        init_code <- paste0("t_env <- microeco::trans_env$new(\n  dataset = ", dataset_name, ",\n  env_cols = ", env_str, "\n)\n")
-
-        group_val <- if (nchar(input$env_group)) input$env_group else NULL
-        p <- t_env$cal_autocor(group = group_val, ggpairs = input$autocor_ggpairs,
-          color_values = get_color_palette(input$autocor_color_theme), alpha = input$autocor_alpha)
-
-        autocor_code <- paste0("t_env$cal_autocor()\n")
-        code <- paste0(init_code, "# 自相关\n", autocor_code)
-        list(success = TRUE, plot = p, data_result = NULL, code = code)
-      }, error = function(e) list(success = FALSE, error = conditionMessage(e)))
-
-      if (!isTRUE(result$success)) { showNotification(result$error, type = "error", duration = 10); return() }
-      append_code(rv, result$code, "环境因子关联 - autocor")
-      local_rv$data_autocor <- result$data_result
-      local_rv$plot_autocor <- result$plot
-      rv$last_plot <- result$plot
+      append_code(rv, result$code, "环境因子关联 - mantel")
+      local_rv$data_mantel <- result$data_result
       showNotification("完成", type = "message")
     })
 
@@ -850,6 +840,14 @@ mod_env_server <- function(id, rv) {
       showNotification("完成", type = "message")
     })
 
+    output$env_autocor_table <- DT::renderDataTable({
+      dt <- local_rv$data_autocor
+      if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+        DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 5),
+          rownames = TRUE, filter = "top")
+      }
+    })
+
     output$env_cor_table <- DT::renderDataTable({
       dt <- local_rv$data_cor
       if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
@@ -858,8 +856,8 @@ mod_env_server <- function(id, rv) {
       }
     })
 
-    output$env_mantel_table <- DT::renderDataTable({
-      dt <- local_rv$data_mantel
+    output$env_diff_table <- DT::renderDataTable({
+      dt <- local_rv$data_diff
       if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
         DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 5),
           rownames = TRUE, filter = "top")
@@ -879,16 +877,8 @@ mod_env_server <- function(id, rv) {
       }
     })
 
-    output$env_diff_table <- DT::renderDataTable({
-      dt <- local_rv$data_diff
-      if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
-        DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 5),
-          rownames = TRUE, filter = "top")
-      }
-    })
-
-    output$env_autocor_table <- DT::renderDataTable({
-      dt <- local_rv$data_autocor
+    output$env_mantel_table <- DT::renderDataTable({
+      dt <- local_rv$data_mantel
       if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
         DT::datatable(as.data.frame(dt), options = list(scrollX = TRUE, pageLength = 5),
           rownames = TRUE, filter = "top")
@@ -900,6 +890,20 @@ mod_env_server <- function(id, rv) {
       local_rv$plot_scatterfit
     })
 
+    output$env_download_table_autocor <- downloadHandler(
+      filename = function() {
+        ext <- ifelse(input$env_table_format_autocor == ",", ".csv", ".tsv")
+        paste0("env_autocor", ext)
+      },
+      content = function(file) {
+        dt <- local_rv$data_autocor
+        if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+          write.table(as.data.frame(dt), file, sep = input$env_table_format_autocor,
+            row.names = TRUE, quote = TRUE)
+        }
+      }
+    )
+
     output$env_download_table_cor <- downloadHandler(
       filename = function() {
         ext <- ifelse(input$env_table_format_cor == ",", ".csv", ".tsv")
@@ -909,34 +913,6 @@ mod_env_server <- function(id, rv) {
         dt <- local_rv$data_cor
         if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
           write.table(as.data.frame(dt), file, sep = input$env_table_format_cor,
-            row.names = TRUE, quote = TRUE)
-        }
-      }
-    )
-
-    output$env_download_table_mantel <- downloadHandler(
-      filename = function() {
-        ext <- ifelse(input$env_table_format_mantel == ",", ".csv", ".tsv")
-        paste0("env_mantel", ext)
-      },
-      content = function(file) {
-        dt <- local_rv$data_mantel
-        if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
-          write.table(as.data.frame(dt), file, sep = input$env_table_format_mantel,
-            row.names = TRUE, quote = TRUE)
-        }
-      }
-    )
-
-    output$env_download_table_ord <- downloadHandler(
-      filename = function() {
-        ext <- ifelse(input$env_table_format_ord == ",", ".csv", ".tsv")
-        paste0("env_ordination", ext)
-      },
-      content = function(file) {
-        dt <- local_rv$data_ord
-        if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
-          write.table(as.data.frame(dt), file, sep = input$env_table_format_ord,
             row.names = TRUE, quote = TRUE)
         }
       }
@@ -956,15 +932,29 @@ mod_env_server <- function(id, rv) {
       }
     )
 
-    output$env_download_table_autocor <- downloadHandler(
+    output$env_download_table_ord <- downloadHandler(
       filename = function() {
-        ext <- ifelse(input$env_table_format_autocor == ",", ".csv", ".tsv")
-        paste0("env_autocor", ext)
+        ext <- ifelse(input$env_table_format_ord == ",", ".csv", ".tsv")
+        paste0("env_ordination", ext)
       },
       content = function(file) {
-        dt <- local_rv$data_autocor
+        dt <- local_rv$data_ord
         if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
-          write.table(as.data.frame(dt), file, sep = input$env_table_format_autocor,
+          write.table(as.data.frame(dt), file, sep = input$env_table_format_ord,
+            row.names = TRUE, quote = TRUE)
+        }
+      }
+    )
+
+    output$env_download_table_mantel <- downloadHandler(
+      filename = function() {
+        ext <- ifelse(input$env_table_format_mantel == ",", ".csv", ".tsv")
+        paste0("env_mantel", ext)
+      },
+      content = function(file) {
+        dt <- local_rv$data_mantel
+        if (!is.null(dt) && (is.data.frame(dt) || is.matrix(dt))) {
+          write.table(as.data.frame(dt), file, sep = input$env_table_format_mantel,
             row.names = TRUE, quote = TRUE)
         }
       }
