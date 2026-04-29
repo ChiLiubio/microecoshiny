@@ -791,11 +791,14 @@ mod_import_server <- function(id, rv) {
             )
           },
           "qiime2" = {
-            tags$div(
-              class = "alert alert-warning",
-              tags$strong("\U0001f9ec 检测到 QIIME2 文件"),
-              tags$br(),
-              tags$small("QIIME2 导入需要 qiime2R 包，当前建议使用 RData 导入")
+            qza_count <- sum(tolower(tools::file_ext(input$data_files$name)) == "qza")
+            tagList(
+              tags$div(
+                class = "alert alert-success",
+                tags$strong("\U0001f9ec 检测到 ", qza_count, " 个 QIIME2 qza 文件"),
+                tags$br(),
+                tags$small("将使用 file2meco::qiime2meco 自动构建 microtable")
+              )
             )
           },
           "unknown" = {
@@ -985,6 +988,95 @@ mod_import_server <- function(id, rv) {
         } else {
           showNotification(sprintf(tr("mod.import.notify.invalid_object", rv$current_language), obj_name, paste(class(obj), collapse = "/")), type = "error")
         }
+
+      } else if (ft == "qiime2") {
+        if (!requireNamespace("file2meco", quietly = TRUE)) {
+          showNotification("\u9700\u8981\u5b89\u88c5 file2meco \u5305\uff1ainstall.packages(\"file2meco\")", type = "error", duration = 10)
+          return()
+        }
+
+        fi <- auto_files_info()
+        req(fi)
+
+        result <- shiny::withProgress(message = "\u6b63\u5728\u6784\u5efa microtable (QIIME2)", value = 0, {
+          shiny::incProgress(0.1, detail = "\u6b63\u5728\u5206\u6790\u6587\u4ef6...")
+
+          feature_qza <- NULL
+          taxonomy_qza <- NULL
+          tree_qza <- NULL
+          seq_qza <- NULL
+          sample_table <- NULL
+
+          for (i in 1:nrow(fi)) {
+            fname <- fi$name[i]
+            fpath <- input$data_files$datapath[input$data_files$name == fname][1]
+            ext <- fi$ext[i]
+
+            if (is.na(fpath) || is.null(fpath)) next
+
+            if (ext == "qza") {
+              if (grepl("feature.?table|otu|abundance|table", fname, ignore.case = TRUE)) {
+                feature_qza <- fpath
+              } else if (grepl("taxonomy|class", fname, ignore.case = TRUE)) {
+                taxonomy_qza <- fpath
+              } else if (grepl("tree|phylogeny|rooted", fname, ignore.case = TRUE)) {
+                tree_qza <- fpath
+              } else if (grepl("rep|sequence|seq|dna|fasta|fna", fname, ignore.case = TRUE)) {
+                seq_qza <- fpath
+              } else if (grepl("sample|meta|map", fname, ignore.case = TRUE)) {
+                sample_table <- fpath
+              } else {
+                if (is.null(feature_qza)) {
+                  feature_qza <- fpath
+                }
+              }
+            } else if (ext %in% c("tsv", "txt", "csv", "xlsx", "xls")) {
+              if (grepl("sample|meta|map", fname, ignore.case = TRUE)) {
+                sample_table <- read_table_auto(fpath, force_numeric = FALSE)
+              }
+            }
+          }
+
+          if (is.null(feature_qza) && is.null(taxonomy_qza)) {
+            stop("\u672a\u627e\u5230 QIIME2 qza \u6587\u4ef6\uff01")
+          }
+
+          shiny::incProgress(0.3, detail = "\u6b63\u5728\u8f6c\u6362\u4e3a microtable...")
+
+          if (!is.null(feature_qza) || !is.null(taxonomy_qza)) {
+            mt <- file2meco::qiime2meco(
+              feature_table = feature_qza,
+              taxonomy_table = taxonomy_qza,
+              phylo_tree = tree_qza,
+              rep_seqs = seq_qza
+            )
+
+            if (!inherits(mt, "microtable")) {
+              stop("qiime2meco \u8f6c\u6362\u5931\u8d25\uff0c\u672a\u8fd4\u56de microtable \u5bf9\u8c61")
+            }
+
+            if (!is.null(sample_table) && is.data.frame(sample_table)) {
+              mt$sample_table <- sample_table
+            }
+
+            shiny::incProgress(0.9, detail = "\u5b8c\u6210")
+            list(success = TRUE, result = mt)
+          } else {
+            stop("\u672a\u627e\u5230 QIIME2 Feature Table \u6216 Taxonomy qza \u6587\u4ef6")
+          }
+        })
+
+        if (!isTRUE(result$success)) {
+          showNotification(result$error, type = "error", duration = 10)
+          return()
+        }
+
+        rv$microtable <- result$result
+        rv$microtable_name <- "qiime2_import"
+        rv$data_loaded <- TRUE
+        append_code(rv, "# QIIME2 \u6587\u4ef6\u5bfc\u5165\nmt <- file2meco::qiime2meco(...)", "QIIME2 import")
+        showNotification("\u2705 QIIME2 \u6570\u636e\u5bfc\u5165\u6210\u529f", type = "message")
+        update_summary()
 
       } else if (ft == "table") {
         roles <- auto_detected_roles()

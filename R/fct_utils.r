@@ -297,6 +297,7 @@ detect_file_roles <- function(files) {
     }
 
     if (ext %in% c("tsv", "txt", "csv", "xlsx", "xls")) {
+      # qza files should not be processed as tables - skip them
       # 优先检查文件名关键词
       if (grepl("taxonomy|taxon", name_lower)) {
         roles$taxonomy <- files[i, ]
@@ -489,8 +490,8 @@ detect_taxonomy_format <- function(filepath) {
 
   # Analyze column counts to determine which lines are comments vs headers
   line_col_counts <- sapply(first_lines, function(line) {
-    parts <- strsplit(line, sep)[[1]]
-    parts <- parts[nchar(parts) > 0]
+    parts <- tryCatch(strsplit(line, sep)[[1]], error = function(e) character(0))
+    parts <- parts[nchar(parts, type = "bytes") > 0]
     length(parts)
   })
 
@@ -645,8 +646,8 @@ read_table_auto <- function(filepath, force_numeric = FALSE) {
   detect_separator <- function(first_line) {
     separators <- c("\t" = "\t", "," = ",", ";" = ";", " " = " ")
     counts <- sapply(separators, function(sep) {
-      parts <- strsplit(first_line, sep)[[1]]
-      parts <- parts[nchar(parts) > 0]
+      parts <- tryCatch(strsplit(first_line, sep)[[1]], error = function(e) character(0))
+      parts <- parts[nchar(parts, type = "bytes") > 0]
       length(parts)
     })
     return(names(which.max(counts)))
@@ -661,7 +662,10 @@ read_table_auto <- function(filepath, force_numeric = FALSE) {
   # Try to detect separator for text files
   # Read first few lines to detect
   first_lines <- readLines(filepath, n = 10, warn = FALSE)
-  first_lines <- first_lines[nchar(first_lines) > 0]
+  # Safely filter empty lines - handle invalid multibyte strings
+  first_lines <- first_lines[vapply(first_lines, function(x) {
+    tryCatch(length(x) > 0 && nchar(x, type = "bytes") > 0, error = function(e) FALSE)
+  }, logical(1))]
 
   if (length(first_lines) == 0) {
     stop("File is empty")
@@ -669,8 +673,8 @@ read_table_auto <- function(filepath, force_numeric = FALSE) {
 
   # Analyze column counts to determine which lines are comments vs headers
   line_col_counts <- sapply(first_lines, function(line) {
-    parts <- strsplit(line, sep)[[1]]
-    parts <- parts[nchar(parts) > 0]
+    parts <- tryCatch(strsplit(line, sep)[[1]], error = function(e) character(0))
+    parts <- parts[nchar(parts, type = "bytes") > 0]
     length(parts)
   })
 

@@ -6,12 +6,24 @@
 #' @param id Module ID
 #' @return Shiny UI tagList
 #' @import shiny bs4Dash shinyWidgets
-#' @importFrom shinyFiles parseDirPath shinyDirButton shinyDirChoose
 #' @keywords beta diversity ordination microbiome
 #' @family community-analysis
 mod_beta_ui <- function(id, lang = "zh") {
   ns <- NS(id)
   tr <- function(zh, en) if (lang == "en") en else zh
+
+  method_labels <- list(
+    "PCoA" = tr("PCoA (主坐标分析)", "PCoA (Principal Coordinates Analysis)"),
+    "NMDS" = tr("NMDS (非度量多维尺度)", "NMDS (Non-metric MDS)"),
+    "PCA" = tr("PCA (主成分分析)", "PCA (Principal Component Analysis)"),
+    "DCA" = tr("DCA (去趋势对应分析)", "DCA (Detrended CA)"),
+    "PLS-DA" = tr("PLS-DA", "PLS-DA"),
+    "OPLS-DA" = tr("OPLS-DA", "OPLS-DA"),
+    "perMANOVA" = tr("perMANOVA", "perMANOVA"),
+    "ANOSIM" = tr("ANOSIM", "ANOSIM"),
+    "BETADISPER" = tr("BETADISPER", "BETADISPER")
+  )
+
   tagList(
     fluidRow(
       column(12, h2(tr("\U0001f517 \u03b2\u591a\u6837\u6027 Beta Diversity", "\U0001f517 Beta Diversity")))
@@ -24,39 +36,106 @@ mod_beta_ui <- function(id, lang = "zh") {
           solidHeader = TRUE,
           width = NULL,
           collapsible = FALSE,
-          h4(tr("\u5206\u6790\u7c7b\u578b", "Analysis Type")),
+
+          h4(tr("\u5206\u6790\u65b9\u6cd5", "Analysis Method")),
           fluidRow(
-            column(12, shiny::radioButtons(ns("beta_analysis_type"), tr("\u5206\u6790\u7c7b\u578b", "Analysis Type"),
-              choices = setNames(c("ordination", "permanova", "anosim", "betadisper"),
-                                 c(tr("\U0001f4c8 \u6392\u5e8f\u5206\u6790", "\U0001f4c8 Ordination"),
-                                   tr("\U0001f4ca perMANOVA", "\U0001f4ca perMANOVA"),
-                                   tr("\U0001f4ca ANOSIM", "\U0001f4ca ANOSIM"),
-                                   tr("\U0001f4ca BETADISPER", "\U0001f4ca BETADISPER"))),
-              selected = "ordination", inline = TRUE))
+            column(12,
+              shiny::tags$div(
+                style = "display: flex; gap: 8px; flex-wrap: wrap;",
+                lapply(names(method_labels), function(m) {
+                  is_default <- (m == "PCoA")
+                  bg_color <- if (is_default) "#007bff" else "transparent"
+                  text_color <- if (is_default) "white" else "#333"
+                  border_color <- "#007bff"
+                  shiny::tags$button(
+                    type = "button",
+                    class = "btn method-card-btn",
+                    id = ns(paste0("method_", m)),
+                    onclick = sprintf("Shiny.setInputValue('%s', '%s', {priority: 'event'}); updateMethodCards(this);", ns("selected_method"), m),
+                    style = sprintf("padding: 8px 16px; border-radius: 4px; font-size: 14px; cursor: pointer; background: %s; color: %s; border: 1px solid %s;",
+                      bg_color, text_color, border_color),
+                    method_labels[[m]]
+                  )
+                })
+              ),
+              shiny::tags$script(HTML("
+                function updateMethodCards(btn) {
+                  $('.method-card-btn').each(function() {
+                    this.style.background = 'transparent';
+                    this.style.color = '#333';
+                  });
+                  btn.style.background = '#007bff';
+                  btn.style.color = 'white';
+                }
+              "))
+            )
           ),
           hr(),
-          shiny::conditionalPanel(condition = "input.beta_analysis_type == 'ordination'", ns = ns,
-            h4(tr("\u57fa\u672c\u53c2\u6570", "Basic Parameters")),
-            fluidRow(
-              column(2, shiny::selectInput(ns("beta_measure"), tr("\u8ddd\u79bb\u5ea6\u91cf (measure)", "measure"),
-                choices = app_config$beta_measures, selected = "bray")),
-              column(2, shiny::selectInput(ns("ord_method"), tr("\u6392\u5e8f\u65b9\u6cd5 (method)", "method"),
-                choices = c("PCoA", "NMDS", "PCA", "DCA", "PLS-DA", "OPLS-DA"), selected = "PCoA")),
-              column(2, shiny::selectInput(ns("group_col"), tr("\u5206\u7ec4\u5217 (group)", "group"), choices = character(0))),
-              column(2, shiny::selectInput(ns("taxa_level"), "taxa_level", choices = character(0))),
-              column(2, shiny::numericInput(ns("ncomp"), "ncomp", value = 2, min = 2, max = 10)),
-              column(2, shiny::numericInput(ns("permutations"), "permutations", value = 999, min = 99, max = 9999, step = 100))
+
+          shiny::conditionalPanel(condition = "['PCoA','NMDS','PCA','DCA','PLS-DA','OPLS-DA'].includes(input.selected_method)", ns = ns,
+            h4(tr("\u65b9\u6cd5\u7279\u5b9a\u53c2\u6570", "Method-specific Parameters")),
+
+            shiny::conditionalPanel(condition = "input.selected_method == 'PCoA'", ns = ns,
+              fluidRow(
+                column(2, shiny::numericInput(ns("pcoa_ncomp"), "ncomp", value = 2, min = 2, max = 10))
+              )
             ),
-            hr(),
-            h4(tr("\u6392\u5e8f\u53c2\u6570", "Ordination Parameters")),
-            fluidRow(
-              column(2, shinyWidgets::materialSwitch(ns("NMDS_matrix"), "NMDS_matrix", value = TRUE, status = "info")),
-              column(2, shinyWidgets::materialSwitch(ns("trans"), tr("trans (\u5f00\u65b9)", "trans (sqrt)"), value = FALSE, status = "warning")),
-              column(2, shinyWidgets::materialSwitch(ns("scale_species"), "scale_species", value = FALSE, status = "info")),
-              column(2, shiny::numericInput(ns("scale_species_ratio"), "scale_species_ratio", value = 0.8, min = 0.5, max = 1, step = 0.1)),
-              column(4)
+
+            shiny::conditionalPanel(condition = "input.selected_method == 'NMDS'", ns = ns,
+              fluidRow(
+                column(2, shiny::numericInput(ns("nmds_ncomp"), "ncomp (k)", value = 2, min = 2, max = 10)),
+                column(3, shiny::selectInput(ns("nmds_taxa_level"), "taxa_level", choices = character(0))),
+                column(2, shinyWidgets::materialSwitch(ns("nmds_matrix"), "NMDS_matrix", value = TRUE, status = "info"))
+              )
             ),
-            hr(),
+
+            shiny::conditionalPanel(condition = "input.selected_method == 'PCA'", ns = ns,
+              fluidRow(
+                column(2, shiny::numericInput(ns("pca_ncomp"), "ncomp", value = 2, min = 2, max = 10)),
+                column(3, shiny::selectInput(ns("pca_taxa_level"), "taxa_level", choices = character(0))),
+                column(2, shinyWidgets::materialSwitch(ns("pca_trans"), tr("trans (\u5f00\u65b9)", "trans (sqrt)"), value = FALSE, status = "warning")),
+                column(2, shinyWidgets::materialSwitch(ns("pca_scale_species"), "scale_species", value = FALSE, status = "info")),
+                column(2, shiny::numericInput(ns("pca_scale_ratio"), "scale_species_ratio", value = 0.8, min = 0.5, max = 1, step = 0.1))
+              )
+            ),
+
+            shiny::conditionalPanel(condition = "input.selected_method == 'DCA'", ns = ns,
+              fluidRow(
+                column(2, shiny::numericInput(ns("dca_ncomp"), "ncomp", value = 2, min = 2, max = 10)),
+                column(3, shiny::selectInput(ns("dca_taxa_level"), "taxa_level", choices = character(0))),
+                column(2, shinyWidgets::materialSwitch(ns("dca_trans"), tr("trans (\u5f00\u65b9)", "trans (sqrt)"), value = FALSE, status = "warning")),
+                column(2, shinyWidgets::materialSwitch(ns("dca_scale_species"), "scale_species", value = FALSE, status = "info")),
+                column(2, shiny::numericInput(ns("dca_scale_ratio"), "scale_species_ratio", value = 0.8, min = 0.5, max = 1, step = 0.1))
+              )
+            ),
+
+            shiny::conditionalPanel(condition = "input.selected_method == 'PLS-DA'", ns = ns,
+              fluidRow(
+                column(2, shiny::numericInput(ns("plsda_ncomp"), "ncomp", value = 2, min = 2, max = 10))
+              )
+            ),
+
+            shiny::conditionalPanel(condition = "input.selected_method == 'OPLS-DA'", ns = ns,
+              fluidRow(
+                column(2, shiny::numericInput(ns("oplsda_ncomp"), "ncomp", value = 2, min = 2, max = 10)),
+                column(2, shiny::numericInput(ns("oplsda_orthoI"), "orthoI", value = NA, min = 1, max = 10))
+              )
+            ),
+
+            hr()
+          ),
+
+          h4(tr("\u8ddd\u79bb\u5ea6\u91cf\u4e0e\u5206\u7ec4", "Distance Measure & Group")),
+          fluidRow(
+            column(3, shiny::selectInput(ns("beta_measure"), tr("\u8ddd\u79bb\u5ea6\u91cf (measure)", "measure"),
+              choices = app_config$beta_measures, selected = "bray")),
+            column(3, shiny::selectInput(ns("group_col"), tr("\u5206\u7ec4\u5217 (group)", "group"), choices = character(0))),
+            column(3, shiny::selectInput(ns("taxa_level"), "taxa_level", choices = character(0))),
+            column(3, shiny::numericInput(ns("permutations"), "permutations", value = 999, min = 99, max = 9999, step = 100))
+          ),
+          hr(),
+
+          shiny::conditionalPanel(condition = "['PCoA','NMDS','PCA','DCA','PLS-DA','OPLS-DA'].includes(input.selected_method)", ns = ns,
             h4(tr("\u56fe\u8868\u7c7b\u578b (plot_type)", "Plot Type (plot_type)")),
             fluidRow(
               column(3, shinyWidgets::materialSwitch(ns("add_point"), tr("\u70b9 ( point)", "point"), value = TRUE, status = "primary")),
@@ -135,7 +214,7 @@ mod_beta_ui <- function(id, lang = "zh") {
             ),
             hr(),
             fluidRow(
-              column(12, shiny::actionButton(ns("run_beta_ord"), tr("\U0001f3c1 \u751f\u6210\u6392\u5e8f\u56fe", "\U0001f3c1 Run Ordination"),
+              column(4, shiny::actionButton(ns("run_beta_ord"), tr("\U0001f3c1 \u8ba1\u7b97\u6392\u5e8f", "\U0001f3c1 Calculate Ordination"),
                 icon = icon("play"), class = "btn-success", width = "200px"))
             ),
             fluidRow(
@@ -145,6 +224,16 @@ mod_beta_ui <- function(id, lang = "zh") {
                 )
               )
             ),
+            fluidRow(
+              column(2, shiny::selectInput(ns("beta_image_format"), tr("\u683c\u5f0f", "Format"),
+                choices = c("PNG" = "png", "PDF" = "pdf", "SVG" = "svg", "TIFF" = "tiff"), selected = "png")),
+              column(1, shiny::numericInput(ns("beta_save_width"), tr("\u5bbd (width)", "Width"), value = 10, min = 4, max = 20)),
+              column(1, shiny::numericInput(ns("beta_save_height"), tr("\u9ad8 (height)", "Height"), value = 7, min = 3, max = 15)),
+              column(2, shiny::numericInput(ns("beta_save_dpi"), "DPI", value = 300, min = 72, max = 600, step = 72)),
+              column(2, shiny::downloadButton(ns("beta_download_plot"), tr("\U0001f4e5\u4fdd\u5b58\u56fe\u7247", "\U0001f4e5Download Plot"),
+                class = "btn-outline-secondary", width = "100%"))
+            ),
+            hr(),
             fluidRow(
               column(12,
                 bs4Dash::box(title = tr("\U0001f4ca \u6392\u5e8f\u6570\u636e\u8868", "\U0001f4ca Ordination Data"), status = "secondary", solidHeader = TRUE, width = NULL,
@@ -160,7 +249,8 @@ mod_beta_ui <- function(id, lang = "zh") {
               column(8)
             )
           ),
-          shiny::conditionalPanel(condition = "input.beta_analysis_type == 'permanova'", ns = ns,
+
+          shiny::conditionalPanel(condition = "input.selected_method == 'perMANOVA'", ns = ns,
             h4(tr("perMANOVA \u53c2\u6570", "perMANOVA Parameters")),
             fluidRow(
               column(2, shinyWidgets::materialSwitch(ns("permanova_all"), tr("permanova_all (\u5168\u5c40)", "permanova_all (global)"), value = TRUE, status = "primary")),
@@ -173,8 +263,9 @@ mod_beta_ui <- function(id, lang = "zh") {
               column(2, shiny::numericInput(ns("permanova_permutations"), "permutations", value = 999, min = 99, max = 9999, step = 100)),
               column(2)
             ),
+            hr(),
             fluidRow(
-              column(12, shiny::actionButton(ns("run_permanova"), tr("\U0001f3c1 \u8fd0\u884cperMANOVA", "\U0001f3c1 Run perMANOVA"),
+              column(4, shiny::actionButton(ns("run_permanova"), tr("\U0001f3c1 \u8fd0\u884cperMANOVA", "\U0001f3c1 Run perMANOVA"),
                 icon = icon("play"), class = "btn-success", width = "200px"))
             ),
             fluidRow(
@@ -192,7 +283,8 @@ mod_beta_ui <- function(id, lang = "zh") {
               column(8)
             )
           ),
-          shiny::conditionalPanel(condition = "input.beta_analysis_type == 'anosim'", ns = ns,
+
+          shiny::conditionalPanel(condition = "input.selected_method == 'ANOSIM'", ns = ns,
             h4(tr("ANOSIM \u53c2\u6570", "ANOSIM Parameters")),
             fluidRow(
               column(2, shinyWidgets::materialSwitch(ns("anosim_paired"), tr("anosim_paired (\u914d\u5bf9)", "anosim_paired (paired)"), value = FALSE, status = "info")),
@@ -205,8 +297,9 @@ mod_beta_ui <- function(id, lang = "zh") {
               column(2, shiny::numericInput(ns("anosim_permutations"), "permutations", value = 999, min = 99, max = 9999, step = 100)),
               column(2)
             ),
+            hr(),
             fluidRow(
-              column(12, shiny::actionButton(ns("run_anosim"), tr("\U0001f3c1 \u8fd0\u884cANOSIM", "\U0001f3c1 Run ANOSIM"),
+              column(4, shiny::actionButton(ns("run_anosim"), tr("\U0001f3c1 \u8fd0\u884cANOSIM", "\U0001f3c1 Run ANOSIM"),
                 icon = icon("play"), class = "btn-success", width = "200px"))
             ),
             fluidRow(
@@ -224,14 +317,16 @@ mod_beta_ui <- function(id, lang = "zh") {
               column(8)
             )
           ),
-          shiny::conditionalPanel(condition = "input.beta_analysis_type == 'betadisper'", ns = ns,
+
+          shiny::conditionalPanel(condition = "input.selected_method == 'BETADISPER'", ns = ns,
             h4(tr("BETADISPER \u53c2\u6570", "BETADISPER Parameters")),
             fluidRow(
               column(2, shiny::numericInput(ns("betadisper_permutations"), "permutations", value = 999, min = 99, max = 9999, step = 100)),
               column(10)
             ),
+            hr(),
             fluidRow(
-              column(12, shiny::actionButton(ns("run_betadisper"), tr("\U0001f3c1 \u8fd0\u884cBETADISPER", "\U0001f3c1 Run BETADISPER"),
+              column(4, shiny::actionButton(ns("run_betadisper"), tr("\U0001f3c1 \u8fd0\u884cBETADISPER", "\U0001f3c1 Run BETADISPER"),
                 icon = icon("play"), class = "btn-success", width = "200px"))
             ),
             fluidRow(
@@ -248,15 +343,6 @@ mod_beta_ui <- function(id, lang = "zh") {
                 class = "btn-outline-info", width = "100%")),
               column(8)
             )
-          ),
-          hr(),
-          fluidRow(
-            column(2, shiny::selectInput(ns("beta_image_format"), tr("\u683c\u5f0f", "Format"),
-              choices = c("PNG" = "png", "PDF" = "pdf", "SVG" = "svg", "TIFF" = "tiff"), selected = "png")),
-            column(1, shiny::numericInput(ns("beta_save_width"), tr("\u5bbd (width)", "Width"), value = 10, min = 4, max = 20)),
-            column(1, shiny::numericInput(ns("beta_save_height"), tr("\u9ad8 (height)", "Height"), value = 7, min = 3, max = 15)),
-            column(2, shiny::numericInput(ns("beta_save_dpi"), "DPI", value = 300, min = 72, max = 600, step = 72)),
-            column(2, shiny::actionButton(ns("beta_save_plot_btn"), tr("\U0001f4e5\u4fdd\u5b58\u56fe\u7247", "\U0001f4e5Save Plot"), icon = icon("save"), class = "btn-outline-secondary", width = "100%"))
           )
         )
       )
@@ -270,115 +356,17 @@ mod_beta_server <- function(id, rv) {
     local_rv <- reactiveValues(
       plot_ord = NULL,
       data_ordination = NULL,
-      save_dir = NULL,
-      t_beta = NULL
+      t_beta = NULL,
+      ordination_computed = FALSE
     )
-
-    volumes <- c(
-      Home      = path.expand("~"),
-      Desktop   = file.path(path.expand("~"), "Desktop"),
-      Documents = file.path(path.expand("~"), "Documents"),
-      get_volumes_safe()
-    )
-    shinyFiles::shinyDirChoose(input, "beta_save_dir_btn", roots = volumes,
-      session = session, defaultRoot = "Desktop")
-
-    observeEvent(input$beta_save_dir_btn, {
-      parsed <- shinyFiles::parseDirPath(volumes, input$beta_save_dir_btn)
-      if (!is.null(parsed) && length(parsed) > 0 && nchar(parsed) > 0) {
-        local_rv$save_dir <- parsed
-        updateTextInput(session, "beta_save_dir_text", value = parsed)
-      }
-    })
-
-    observeEvent(input$beta_save_plot_btn, {
-      req(local_rv$plot_ord)
-      default_name <- paste0("beta_", input$ord_method, ".", input$beta_image_format)
-      current_dir <- isolate(local_rv$save_dir)
-      dir_display <- if (!is.null(current_dir) && nchar(current_dir) > 0) current_dir else ""
-
-      showModal(modalDialog(
-        title = "\U0001f4be \u4fdd\u5b58\u56fe\u7247",
-        size = "m",
-        easyClose = TRUE,
-        fluidRow(
-          column(12,
-            tags$label(class = "control-label", style = "font-weight: bold;",
-              "\U0001f4c1 \u4fdd\u5b58\u6587\u4ef6\u5939"),
-            fluidRow(
-              column(9,
-                shiny::textInput(ns("beta_save_dir_text"), label = NULL, value = dir_display,
-                  placeholder = "\u8bf7\u70b9\u51fb\u53f3\u4fa7\u6309\u94ae\u9009\u62e9\u6587\u4ef6\u5939...",
-                  width = "100%")
-              ),
-              column(3, style = "padding-top: 0;",
-                shinyFiles::shinyDirButton(ns("beta_save_dir_btn"), "\u6d4f\u89c8",
-                  "\u9009\u62e9\u4fdd\u5b58\u6587\u4ef6\u5939",
-                  class = "btn-outline-primary", icon = icon("folder-open"),
-                  style = "margin-top: 25px;")
-              )
-            )
-          )
-        ),
-        tags$hr(style = "margin: 12px 0;"),
-        fluidRow(
-          column(6, shiny::textInput(ns("beta_save_filename"), "\U0001f4dd \u6587\u4ef6\u540d\u79f0",
-            value = default_name)),
-          column(6, tags$div(style = "padding-top: 28px;",
-            tags$p(class = "text-muted", style = "margin-bottom: 0;",
-              tags$span(icon("info-circle")), " \u683c\u5f0f: ",
-              tags$code(toupper(input$beta_image_format)),
-              " | \u5bbd\u00d7\u9ad8: ",
-              tags$code(paste0(input$beta_save_width, "\u00d7", input$beta_save_height)),
-              " | DPI: ", tags$code(input$beta_save_dpi))
-          ))
-        ),
-        footer = tagList(
-          shiny::actionButton(ns("beta_confirm_save"), "\u2705 \u4fdd\u5b58\u5230\u6587\u4ef6\u5939",
-            icon = icon("save"), class = "btn-primary"),
-          shiny::modalButton("\u53d6\u6d88")
-        )
-      ))
-    })
-
-    observeEvent(input$beta_confirm_save, {
-      req(local_rv$plot_ord)
-      save_dir <- local_rv$save_dir
-      if (is.null(save_dir) || !isTRUE(nchar(save_dir) > 0)) {
-        showNotification("\u8bf7\u5148\u9009\u62e9\u4fdd\u5b58\u6587\u4ef6\u5939", type = "warning")
-        return()
-      }
-      fname <- input$beta_save_filename
-      if (is.null(fname) || !isTRUE(nzchar(trimws(fname)))) {
-        fname <- paste0("beta_", input$ord_method)
-      }
-      fname <- trimws(fname)
-      ext <- input$beta_image_format
-      if (!grepl(paste0("\\.", ext, "$"), fname, ignore.case = TRUE)) {
-        fname <- sub("\\.(png|pdf|svg|tiff|tif)$", "", fname, ignore.case = TRUE)
-        fname <- paste0(fname, ".", ext)
-      }
-      if (!dir.exists(save_dir)) {
-        showNotification("\u6587\u4ef6\u5939\u4e0d\u5b58\u5728\uff0c\u8bf7\u91cd\u65b0\u9009\u62e9", type = "error")
-        return()
-      }
-      full_path <- file.path(save_dir, fname)
-
-      tryCatch({
-        ggplot2::ggsave(filename = full_path, plot = local_rv$plot_ord,
-          width = input$beta_save_width, height = input$beta_save_height,
-          units = "in", dpi = input$beta_save_dpi, scale = 1)
-        removeModal()
-        showNotification(paste0("\u2705 \u5df2\u4fdd\u5b58\u81f3: ", full_path), type = "message", duration = 5)
-      }, error = function(e) {
-        showNotification(paste0("\u4fdd\u5b58\u5931\u8d25: ", e$message), type = "error", duration = 10)
-      })
-    })
 
     observe({
       if (!check_microtable(rv)) {
         updateSelectInput(session, "group_col", choices = character(0))
         updateSelectInput(session, "taxa_level", choices = character(0))
+        updateSelectInput(session, "nmds_taxa_level", choices = character(0))
+        updateSelectInput(session, "pca_taxa_level", choices = character(0))
+        updateSelectInput(session, "dca_taxa_level", choices = character(0))
         updateSelectInput(session, "plot_color", choices = character(0))
         updateSelectInput(session, "plot_shape", choices = character(0))
         updateSelectInput(session, "add_sample_label", choices = character(0))
@@ -393,6 +381,9 @@ mod_beta_server <- function(id, rv) {
       ranks <- get_tax_ranks(rv)
       updateSelectInput(session, "group_col", choices = c("\u65e0" = "", cols))
       updateSelectInput(session, "taxa_level", choices = c("\u65e0" = "", ranks))
+      updateSelectInput(session, "nmds_taxa_level", choices = c("\u65e0" = "", ranks))
+      updateSelectInput(session, "pca_taxa_level", choices = c("\u65e0" = "", ranks))
+      updateSelectInput(session, "dca_taxa_level", choices = c("\u65e0" = "", ranks))
       updateSelectInput(session, "plot_color", choices = c("\u65e0" = "", cols))
       updateSelectInput(session, "plot_shape", choices = c("\u65e0" = "", cols))
       updateSelectInput(session, "add_sample_label", choices = c("\u65e0" = "", cols))
@@ -401,7 +392,7 @@ mod_beta_server <- function(id, rv) {
       updateSelectInput(session, "anosim_group", choices = c("\u65e0" = "", cols))
       updateSelectInput(session, "anosim_by_group", choices = c("\u65e0" = "", cols))
       updateSelectInput(session, "order_group_col", choices = c("\u65e0" = "", cols))
-      
+
       if (!is.null(cols) && length(cols) > 0) {
         local_rv$group_order <- NULL
       }
@@ -411,15 +402,15 @@ mod_beta_server <- function(id, rv) {
       if (!isTRUE(input$order_group) || !isTRUE(nzchar(input$order_group_col))) {
         return(NULL)
       }
-      
+
       col_name <- input$order_group_col
       st <- rv$microtable$sample_table
       if (is.null(st) || !(col_name %in% names(st))) return(NULL)
-      
+
       vals <- as.character(unique(st[[col_name]]))
       vals <- vals[!is.na(vals)]
       if (length(vals) == 0) return(NULL)
-      
+
       shiny::fluidRow(
         shiny::column(12,
           shiny::tags$label("Drag to reorder group levels:", class = "control-label"),
@@ -465,12 +456,12 @@ mod_beta_server <- function(id, rv) {
 
     get_group_order <- function() {
       if (!isTRUE(input$order_group) || !isTRUE(nzchar(input$order_group_col))) return(NULL)
-      
+
       order_from_ui <- input$group_order
       if (!is.null(order_from_ui) && length(order_from_ui) > 0) {
         return(order_from_ui)
       }
-      
+
       col_name <- input$order_group_col
       st <- rv$microtable$sample_table
       if (is.null(st) || !(col_name %in% names(st))) return(NULL)
@@ -490,108 +481,144 @@ mod_beta_server <- function(id, rv) {
       types
     }
 
-    observeEvent(input$run_beta_ord, {
-      if (!check_microtable(rv)) {
-        showNotification("\u8bf7\u5148\u5bfc\u5165\u6570\u636e", type = "error")
-        return()
-      }
+    init_t_beta <- function() {
+      if (!check_microtable(rv)) return(NULL)
 
       group_val <- if (isTRUE(nzchar(input$group_col))) input$group_col else NULL
-      taxa_level_val <- if (isTRUE(nzchar(input$taxa_level))) input$taxa_level else NULL
 
       if (is.null(rv$microtable$beta_diversity)) {
         showNotification("\u6b63\u5728\u8ba1\u7b97 Beta \u591a\u6837\u6027...", type = "message", duration = 3)
         rv$microtable$cal_betadiv()
       }
 
-      result <- tryCatch({
-        t_beta <- microeco::trans_beta$new(
-          dataset = rv$microtable,
-          group = group_val,
-          measure = input$beta_measure
+      t_beta <- microeco::trans_beta$new(
+        dataset = rv$microtable,
+        group = group_val,
+        measure = input$beta_measure
+      )
+
+      return(t_beta)
+    }
+
+    get_method_params <- function(method) {
+      ncomp_val <- switch(method,
+        "PCoA" = input$pcoa_ncomp,
+        "NMDS" = input$nmds_ncomp,
+        "PCA" = input$pca_ncomp,
+        "DCA" = input$dca_ncomp,
+        "PLS-DA" = input$plsda_ncomp,
+        "OPLS-DA" = input$oplsda_ncomp,
+        2
+      )
+
+      taxa_level_val <- NULL
+      if (method %in% c("NMDS", "PCA", "DCA")) {
+        taxa_level_val <- switch(method,
+          "NMDS" = if (isTRUE(nzchar(input$nmds_taxa_level))) input$nmds_taxa_level else NULL,
+          "PCA" = if (isTRUE(nzchar(input$pca_taxa_level))) input$pca_taxa_level else NULL,
+          "DCA" = if (isTRUE(nzchar(input$dca_taxa_level))) input$dca_taxa_level else NULL,
+          NULL
         )
+      }
+
+      trans_val <- FALSE
+      if (method %in% c("PCA", "DCA")) {
+        trans_val <- switch(method,
+          "PCA" = isTRUE(input$pca_trans),
+          "DCA" = isTRUE(input$dca_trans),
+          FALSE
+        )
+      }
+
+      scale_species_val <- FALSE
+      scale_ratio_val <- 0.8
+      if (method %in% c("PCA", "DCA")) {
+        scale_species_val <- switch(method,
+          "PCA" = isTRUE(input$pca_scale_species),
+          "DCA" = isTRUE(input$dca_scale_species),
+          FALSE
+        )
+        scale_ratio_val <- switch(method,
+          "PCA" = input$pca_scale_ratio %||% 0.8,
+          "DCA" = input$dca_scale_ratio %||% 0.8,
+          0.8
+        )
+      }
+
+      nmds_matrix_val <- TRUE
+      if (method == "NMDS") {
+        nmds_matrix_val <- isTRUE(input$nmds_matrix)
+      }
+
+      orthoI_val <- NA
+      if (method == "OPLS-DA") {
+        v <- input$oplsda_orthoI
+        if (!is.na(v) && isTRUE(nzchar(as.character(v)))) {
+          orthoI_val <- as.integer(v)
+        }
+      }
+
+      list(
+        ncomp = ncomp_val,
+        taxa_level = taxa_level_val,
+        trans = trans_val,
+        scale_species = scale_species_val,
+        scale_species_ratio = scale_ratio_val,
+        NMDS_matrix = nmds_matrix_val,
+        orthoI = orthoI_val
+      )
+    }
+
+    observeEvent(input$run_beta_ord, {
+      if (!check_microtable(rv)) {
+        showNotification("\u8bf7\u5148\u5bfc\u5165\u6570\u636e", type = "error")
+        return()
+      }
+
+      method <- input$selected_method
+      if (is.null(method) || !nzchar(method)) {
+        method <- "PCoA"
+      }
+
+      params <- get_method_params(method)
+
+      result <- tryCatch({
+        t_beta <- init_t_beta()
+        if (is.null(t_beta)) stop("\u521d\u59cb\u5316 trans_beta \u5931\u8d25")
 
         t_beta$cal_ordination(
-          method = input$ord_method,
-          ncomp = input$ncomp,
-          taxa_level = taxa_level_val,
-          NMDS_matrix = input$NMDS_matrix,
-          trans = input$trans,
-          scale_species = input$scale_species,
-          scale_species_ratio = input$scale_species_ratio,
-          orthoI = NA
+          method = method,
+          ncomp = params$ncomp,
+          taxa_level = params$taxa_level,
+          NMDS_matrix = params$NMDS_matrix,
+          trans = params$trans,
+          scale_species = params$scale_species,
+          scale_species_ratio = params$scale_species_ratio,
+          orthoI = params$orthoI
         )
 
+        group_val <- if (isTRUE(nzchar(input$group_col))) input$group_col else NULL
+        taxa_display <- if (!is.null(params$taxa_level)) params$taxa_level else "NULL"
         dataset_name <- rv$microtable_name %||% "tmp_microtable"
         ta_code <- paste0(
-          "# Beta \u591a\u6837\u6027\u5206\u6790\n",
+          "# Beta \u591a\u6837\u6027\u5206\u6790 - ", method, "\n",
           "t_beta <- microeco::trans_beta$new(\n",
           "  dataset = ", dataset_name, ",\n",
           "  measure = \"", input$beta_measure, "\",\n",
           if (!is.null(group_val)) paste0("  group = \"", group_val, "\",\n") else "  group = NULL,\n",
           ")\n\n",
           "t_beta$cal_ordination(\n",
-          "  method = \"", input$ord_method, "\",\n",
-          "  ncomp = ", input$ncomp, ",\n",
-          if (!is.null(taxa_level_val)) paste0("  taxa_level = \"", taxa_level_val, "\",\n") else "  taxa_level = NULL,\n",
-          "  NMDS_matrix = ", input$NMDS_matrix, ",\n",
-          "  trans = ", input$trans, ",\n",
-          "  scale_species = ", input$scale_species, ",\n",
-          "  scale_species_ratio = ", input$scale_species_ratio, "\n",
+          "  method = \"", method, "\",\n",
+          "  ncomp = ", params$ncomp, ",\n",
+          if (!is.null(params$taxa_level)) paste0("  taxa_level = \"", params$taxa_level, "\",\n") else "  taxa_level = NULL,\n",
+          "  NMDS_matrix = ", params$NMDS_matrix, ",\n",
+          "  trans = ", params$trans, ",\n",
+          "  scale_species = ", params$scale_species, ",\n",
+          "  scale_species_ratio = ", params$scale_species_ratio, "\n",
           ")\n"
         )
 
-        plot_code <- paste0(
-          "t_beta$plot_ordination(\n",
-          "  plot_type = c(\"", paste(get_plot_type(), collapse = "\", \""), "\"),\n",
-          "  color_values = ", "RColorBrewer::brewer.pal(8, \"", input$color_theme, "\"),\n",
-          "  plot_color = ", if (isTRUE(nzchar(input$plot_color))) paste0("\"", input$plot_color, "\"") else "NULL", ",\n",
-          "  plot_shape = ", if (isTRUE(nzchar(input$plot_shape))) paste0("\"", input$plot_shape, "\"") else "NULL", ",\n",
-          "  choices = c(", input$choices_x, ", ", input$choices_y, "),\n",
-          "  point_size = ", input$point_size, ",\n",
-          "  point_alpha = ", input$point_alpha, "\n",
-          ")\n"
-        )
-
-        full_code <- paste0(ta_code, "# \u7ed8\u56fe\n", plot_code)
-
-        p <- t_beta$plot_ordination(
-          plot_type = get_plot_type(),
-          color_values = get_color_palette(input$color_theme, n = if (isTRUE(nzchar(input$plot_color))) length(unique(rv$microtable$sample_table[[input$plot_color]])) else 8),
-          shape_values = if (isTRUE(nzchar(input$shape_values))) tryCatch(eval(parse(text = input$shape_values)), error = function(e) NULL) else NULL,
-          plot_color = if (isTRUE(nzchar(input$plot_color))) input$plot_color else NULL,
-          plot_shape = if (isTRUE(nzchar(input$plot_shape))) input$plot_shape else NULL,
-          plot_group_order = get_group_order(),
-          choices = c(input$choices_x, input$choices_y),
-          point_size = input$point_size,
-          point_alpha = input$point_alpha,
-          add_sample_label = if (isTRUE(nzchar(input$add_sample_label))) input$add_sample_label else NULL,
-          point_second = input$point_second,
-          point_second_size = input$point_second_size,
-          point_second_alpha = input$point_second_alpha,
-          point_second_color = if (isTRUE(nzchar(input$point_second_color))) input$point_second_color else NULL,
-          ellipse_chull_fill = input$ellipse_chull_fill,
-          ellipse_chull_alpha = input$ellipse_chull_alpha,
-          ellipse_level = input$ellipse_level,
-          ellipse_type = input$ellipse_type,
-          centroid_segment_alpha = input$centroid_segment_alpha,
-          centroid_segment_size = input$centroid_segment_size,
-          centroid_segment_linetype = as.numeric(input$centroid_segment_linetype),
-          NMDS_stress_pos = if (isTRUE(input$show_stress) && input$ord_method == "NMDS") {
-            tryCatch(eval(parse(text = input$NMDS_stress_pos)), error = function(e) c(1, 1))
-          } else NULL,
-          NMDS_stress_text_prefix = if (input$ord_method == "NMDS") input$NMDS_stress_text_prefix else "",
-          loading_arrow = input$loading_arrow,
-          loading_taxa_num = input$loading_taxa_num,
-          loading_text_taxlevel = if (isTRUE(nzchar(input$loading_text_taxlevel))) input$loading_text_taxlevel else NULL,
-          loading_text_size = input$loading_text_size,
-          loading_text_color = input$loading_text_color,
-          loading_arrow_color = input$loading_arrow_color,
-          loading_text_italic = input$loading_text_italic,
-          loading_text_prefix = input$loading_text_prefix
-        )
-
-        list(success = TRUE, plot = p, t_beta = t_beta, code = full_code)
+        list(success = TRUE, t_beta = t_beta, code = ta_code)
       }, error = function(e) {
         list(success = FALSE, error = conditionMessage(e))
       })
@@ -601,16 +628,62 @@ mod_beta_server <- function(id, rv) {
         return()
       }
 
-      append_code(rv, result$code, paste0("\u03b2\u591a\u6837\u6027 - ", input$beta_measure, " + ", input$ord_method))
-      local_rv$plot_ord <- result$plot
+      append_code(rv, result$code, paste0("\u03b2\u591a\u6837\u6027 - ", input$beta_measure, " + ", method))
       local_rv$t_beta <- result$t_beta
-      rv$last_plot <- result$plot
-      showNotification("\u5b8c\u6210", type = "message")
+      local_rv$ordination_computed <- TRUE
+      local_rv$data_ordination <- result$t_beta$res_ordination
+      showNotification("\u6392\u5e8f\u8ba1\u7b97\u5b8c\u6210", type = "message")
     })
 
     output$beta_ord_plot <- shiny::renderPlot({
-      req(local_rv$plot_ord)
-      local_rv$plot_ord
+      req(local_rv$t_beta, local_rv$ordination_computed)
+
+      p <- local_rv$t_beta$plot_ordination(
+        plot_type = get_plot_type(),
+        color_values = get_color_palette(input$color_theme, n = if (isTRUE(nzchar(input$plot_color))) length(unique(rv$microtable$sample_table[[input$plot_color]])) else 8),
+        shape_values = if (isTRUE(nzchar(input$shape_values))) tryCatch(eval(parse(text = input$shape_values)), error = function(e) NULL) else NULL,
+        plot_color = if (isTRUE(nzchar(input$plot_color))) input$plot_color else NULL,
+        plot_shape = if (isTRUE(nzchar(input$plot_shape))) input$plot_shape else NULL,
+        plot_group_order = get_group_order(),
+        choices = c(input$choices_x, input$choices_y),
+        point_size = input$point_size,
+        point_alpha = input$point_alpha,
+        add_sample_label = if (isTRUE(nzchar(input$add_sample_label))) input$add_sample_label else NULL,
+        point_second = input$point_second,
+        point_second_size = input$point_second_size,
+        point_second_alpha = input$point_second_alpha,
+        point_second_color = if (isTRUE(nzchar(input$point_second_color))) input$point_second_color else NULL,
+        ellipse_chull_fill = input$ellipse_chull_fill,
+        ellipse_chull_alpha = input$ellipse_chull_alpha,
+        ellipse_level = input$ellipse_level,
+        ellipse_type = input$ellipse_type,
+        centroid_segment_alpha = input$centroid_segment_alpha,
+        centroid_segment_size = input$centroid_segment_size,
+        centroid_segment_linetype = as.numeric(input$centroid_segment_linetype),
+        NMDS_stress_pos = if (isTRUE(input$show_stress) && input$selected_method == "NMDS") {
+          tryCatch(eval(parse(text = input$NMDS_stress_pos)), error = function(e) c(1, 1))
+        } else NULL,
+        NMDS_stress_text_prefix = if (input$selected_method == "NMDS") input$NMDS_stress_text_prefix else "",
+        loading_arrow = input$loading_arrow,
+        loading_taxa_num = input$loading_taxa_num,
+        loading_text_taxlevel = if (isTRUE(nzchar(input$loading_text_taxlevel))) input$loading_text_taxlevel else NULL,
+        loading_text_size = input$loading_text_size,
+        loading_text_color = input$loading_text_color,
+        loading_arrow_color = input$loading_arrow_color,
+        loading_text_italic = input$loading_text_italic,
+        loading_text_prefix = input$loading_text_prefix
+      )
+
+      local_rv$plot_ord <- p
+      rv$last_plot <- p
+
+      if (is(p, "ggplot")) {
+        print(p)
+      } else if (is(p, "gtable")) {
+        grid::grid.draw(p)
+      } else {
+        print(p)
+      }
     })
 
     output$beta_ord_table <- DT::renderDataTable({
@@ -627,12 +700,16 @@ mod_beta_server <- function(id, rv) {
         showNotification("\u8bf7\u5148\u5bfc\u5165\u6570\u636e", type = "error")
         return()
       }
-      if (is.null(local_rv$t_beta)) {
-        showNotification("\u8bf7\u5148\u8ba1\u7b97\u6392\u5e8f\u5206\u6790", type = "warning")
-        return()
-      }
 
       result <- tryCatch({
+        if (is.null(local_rv$t_beta)) {
+          t_beta <- init_t_beta()
+          if (is.null(t_beta)) stop("\u521d\u59cb\u5316 trans_beta \u5931\u8d25")
+          local_rv$t_beta <- t_beta
+        }
+
+        permutations_val <- if (isTRUE(nzchar(input$permanova_permutations))) input$permanova_permutations else input$permutations
+
         if (isTRUE(nzchar(input$permanova_formula))) {
           local_rv$t_beta$cal_manova(
             manova_all = input$permanova_all,
@@ -640,7 +717,7 @@ mod_beta_server <- function(id, rv) {
             p_adjust_method = input$permanova_p_adjust,
             by = "terms",
             by_auto_set = TRUE,
-            permutations = input$permanova_permutations
+            permutations = permutations_val
           )
         } else {
           local_rv$t_beta$cal_manova(
@@ -650,7 +727,7 @@ mod_beta_server <- function(id, rv) {
             p_adjust_method = input$permanova_p_adjust,
             by = "terms",
             by_auto_set = TRUE,
-            permutations = input$permanova_permutations
+            permutations = permutations_val
           )
         }
         list(success = TRUE, data = local_rv$t_beta$res_manova)
@@ -678,18 +755,22 @@ mod_beta_server <- function(id, rv) {
         showNotification("\u8bf7\u5148\u5bfc\u5165\u6570\u636e", type = "error")
         return()
       }
-      if (is.null(local_rv$t_beta)) {
-        showNotification("\u8bf7\u5148\u8ba1\u7b97\u6392\u5e8f\u5206\u6790", type = "warning")
-        return()
-      }
 
       result <- tryCatch({
+        if (is.null(local_rv$t_beta)) {
+          t_beta <- init_t_beta()
+          if (is.null(t_beta)) stop("\u521d\u59cb\u5316 trans_beta \u5931\u8d25")
+          local_rv$t_beta <- t_beta
+        }
+
+        permutations_val <- if (isTRUE(nzchar(input$anosim_permutations))) input$anosim_permutations else input$permutations
+
         local_rv$t_beta$cal_anosim(
           paired = input$anosim_paired,
           group = if (isTRUE(nzchar(input$anosim_group))) input$anosim_group else NULL,
           by_group = if (isTRUE(nzchar(input$anosim_by_group))) input$anosim_by_group else NULL,
           p_adjust_method = input$anosim_p_adjust,
-          permutations = input$anosim_permutations
+          permutations = permutations_val
         )
         list(success = TRUE, data = local_rv$t_beta$res_anosim)
       }, error = function(e) {
@@ -716,13 +797,17 @@ mod_beta_server <- function(id, rv) {
         showNotification("\u8bf7\u5148\u5bfc\u5165\u6570\u636e", type = "error")
         return()
       }
-      if (is.null(local_rv$t_beta)) {
-        showNotification("\u8bf7\u5148\u8ba1\u7b97\u6392\u5e8f\u5206\u6790", type = "warning")
-        return()
-      }
 
       result <- tryCatch({
-        local_rv$t_beta$cal_betadisper()
+        if (is.null(local_rv$t_beta)) {
+          t_beta <- init_t_beta()
+          if (is.null(t_beta)) stop("\u521d\u59cb\u5316 trans_beta \u5931\u8d25")
+          local_rv$t_beta <- t_beta
+        }
+
+        local_rv$t_beta$cal_betadisper(
+          permutations = input$betadisper_permutations
+        )
         list(success = TRUE, data = local_rv$t_beta$res_betadisper)
       }, error = function(e) {
         list(success = FALSE, error = conditionMessage(e))
@@ -793,6 +878,24 @@ mod_beta_server <- function(id, rv) {
         if (!is.null(dt) && is.data.frame(dt)) {
           write.table(dt, file, sep = input$beta_table_format_betadisper, row.names = TRUE, quote = TRUE)
         }
+      }
+    )
+
+    output$beta_download_plot <- downloadHandler(
+      filename = function() {
+        ext <- input$beta_image_format %||% "png"
+        paste0("beta_", input$selected_method %||% "ordination", "_", Sys.Date(), ".", ext)
+      },
+      content = function(file) {
+        req(local_rv$plot_ord)
+        ggplot2::ggsave(
+          filename = file,
+          plot = local_rv$plot_ord,
+          width = input$beta_save_width %||% 10,
+          height = input$beta_save_height %||% 7,
+          dpi = input$beta_save_dpi %||% 300,
+          units = "in"
+        )
       }
     )
   })
