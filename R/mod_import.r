@@ -929,51 +929,6 @@ mod_import_server <- function(id, rv) {
       })
     }, ignoreNULL = TRUE)
 
-    # Helper function to read tables with auto-detection
-    read_table_auto <- function(filepath, force_numeric = FALSE) {
-      ext <- tolower(tools::file_ext(filepath))
-      
-      data <- switch(ext,
-        "csv" = readr::read_csv(filepath, show_col_types = FALSE),
-        "tsv" = readr::read_tsv(filepath, show_col_types = FALSE),
-        "txt" = readr::read_tsv(filepath, show_col_types = FALSE),
-        "xlsx" = readxl::read_excel(filepath),
-        "xls" = {
-          tryCatch({
-            readxl::read_excel(filepath)
-          }, error = function(e) {
-            stop(paste0(
-              "无法读取 .xls 文件。可能原因：\n",
-              "1. 文件格式不兼容旧版 Excel 格式\n",
-              "2. 文件已损坏或受保护\n\n",
-              "建议解决方案：\n",
-              "- 在 Excel 中打开文件，另存为 .xlsx 格式\n",
-              "- 或导出为 .csv 格式后重新导入\n\n",
-              "原始错误: ", e$message
-            ))
-          })
-        },
-        stop(paste0("不支持的文件扩展名: ", ext))
-      )
-      
-      # 强制转换为传统 data.frame（避免 tbl_df 引起后续错误）
-      data <- as.data.frame(data, stringsAsFactors = FALSE)
-      
-      # 设置第一列为行名并删除
-      if (nrow(data) > 0) {
-        rownames(data) <- data[[1]]
-        data <- data[, -1, drop = FALSE]
-        
-        # 仅在读取特征丰度表时强制转换为数值型
-        if (force_numeric) {
-          result <- convert_to_numeric_safe(data)
-          data <- result$df
-        }
-      }
-      
-      data
-    }
-
     # Build microtable from auto import
     observeEvent(input$build_auto, {
       ft <- auto_file_type()

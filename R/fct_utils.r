@@ -388,18 +388,13 @@ detect_file_roles <- function(files) {
 }
 
 read_combined_file <- function(file_info) {
-  ext <- file_info$ext %||% tolower(tools::file_ext(file_info$datapath))
-
-  if (ext %in% c("xlsx", "xls")) {
-    df <- as.data.frame(readxl::read_excel(file_info$datapath, col_names = TRUE), stringsAsFactors = FALSE)
-  } else {
-    df <- as.data.frame(read.table(file_info$datapath, sep = "\t", header = TRUE,
-                    check.names = FALSE, stringsAsFactors = FALSE))
-  }
+  df <- read_table_auto(file_info$datapath, force_numeric = FALSE)
 
   if (nrow(df) > 0) {
-    rownames(df) <- df[[1]]
-    df <- df[, -1, drop = FALSE]
+    if (any(duplicated(rownames(df)))) {
+      dup_examples <- paste(head(rownames(df)[duplicated(rownames(df))], 3), collapse = ", ")
+      stop(sprintf("文件第一列（Feature ID / 样本名）存在重复值，请检查数据！重复项示例: %s", dup_examples))
+    }
   }
 
   tax_cols <- file_info$tax_col_indices
@@ -412,6 +407,10 @@ read_combined_file <- function(file_info) {
   rownames(feat_df) <- rownames(df)
 
   result <- convert_to_numeric_safe(feat_df)
+  if (length(result$non_numeric_cols) > 0) {
+    stop("丰度表格中包含非数值列，请检查：",
+         paste(head(result$non_numeric_cols, 5), collapse = ", "))
+  }
 
   list(feature = result$df, taxonomy = tax_df)
 }
@@ -609,10 +608,22 @@ read_table_auto <- function(filepath, force_numeric = FALSE) {
   if (ext %in% c("xlsx", "xls")) {
     df <- as.data.frame(readxl::read_excel(filepath, col_names = TRUE), stringsAsFactors = FALSE)
     if (nrow(df) > 0) {
+      # 检查第一列重复
+      if (any(duplicated(df[[1]]))) {
+        dup_examples <- paste(head(df[[1]][duplicated(df[[1]])], 3), collapse = ", ")
+        stop(sprintf("文件第一列（Feature ID / 样本名）存在重复值，请检查数据！重复项示例: %s", dup_examples))
+      }
       rownames(df) <- df[[1]]
       df <- df[, -1, drop = FALSE]
       if (force_numeric) {
         result <- convert_to_numeric_safe(df)
+        if (length(result$non_numeric_cols) > 0) {
+          stop("丰度表格中包含非数值列，请检查：",
+               paste(head(result$non_numeric_cols, 5), collapse = ", "))
+        }
+        if (any(is.na(result$df))) {
+          warning("数据转换为数值型时产生了 NA (空值)，可能会影响后续分析。")
+        }
         df <- result$df
       }
     }
@@ -712,8 +723,21 @@ read_table_auto <- function(filepath, force_numeric = FALSE) {
 
       # Verify the read was successful (has more than 0 rows)
       if (nrow(df) > 0) {
+        # 检查第一列重复（行名）
+        if (any(duplicated(rownames(df)))) {
+          dup_examples <- paste(head(rownames(df)[duplicated(rownames(df))], 3), collapse = ", ")
+          stop(sprintf("文件第一列（Feature ID / 样本名）存在重复值，请检查数据！重复项示例: %s", dup_examples))
+        }
+
         if (force_numeric) {
           result <- convert_to_numeric_safe(df)
+          if (length(result$non_numeric_cols) > 0) {
+            stop("丰度表格中包含非数值列，请检查：",
+                 paste(head(result$non_numeric_cols, 5), collapse = ", "))
+          }
+          if (any(is.na(result$df))) {
+            warning("数据转换为数值型时产生了 NA (空值)，可能会影响后续分析。")
+          }
           df <- result$df
         }
         return(df)
@@ -726,8 +750,16 @@ read_table_auto <- function(filepath, force_numeric = FALSE) {
                      row.names = 1, check.names = FALSE,
                      stringsAsFactors = FALSE, comment.char = "")
     df <- as.data.frame(df)
+    if (any(duplicated(rownames(df)))) {
+      dup_examples <- paste(head(rownames(df)[duplicated(rownames(df))], 3), collapse = ", ")
+      stop(sprintf("文件第一列（Feature ID / 样本名）存在重复值，请检查数据！重复项示例: %s", dup_examples))
+    }
     if (force_numeric) {
       result <- convert_to_numeric_safe(df)
+      if (length(result$non_numeric_cols) > 0) {
+        stop("丰度表格中包含非数值列，请检查：",
+             paste(head(result$non_numeric_cols, 5), collapse = ", "))
+      }
       df <- result$df
     }
     return(df)
@@ -737,8 +769,16 @@ read_table_auto <- function(filepath, force_numeric = FALSE) {
     df <- read.csv(filepath, header = TRUE, row.names = 1,
                    check.names = FALSE, stringsAsFactors = FALSE)
     df <- as.data.frame(df)
+    if (any(duplicated(rownames(df)))) {
+      dup_examples <- paste(head(rownames(df)[duplicated(rownames(df))], 3), collapse = ", ")
+      stop(sprintf("文件第一列（Feature ID / 样本名）存在重复值，请检查数据！重复项示例: %s", dup_examples))
+    }
     if (force_numeric) {
       result <- convert_to_numeric_safe(df)
+      if (length(result$non_numeric_cols) > 0) {
+        stop("丰度表格中包含非数值列，请检查：",
+             paste(head(result$non_numeric_cols, 5), collapse = ", "))
+      }
       df <- result$df
     }
     return(df)
@@ -749,8 +789,16 @@ read_table_auto <- function(filepath, force_numeric = FALSE) {
                      row.names = 1, check.names = FALSE,
                      stringsAsFactors = FALSE)
     df <- as.data.frame(df)
+    if (any(duplicated(rownames(df)))) {
+      dup_examples <- paste(head(rownames(df)[duplicated(rownames(df))], 3), collapse = ", ")
+      stop(sprintf("文件第一列（Feature ID / 样本名）存在重复值，请检查数据！重复项示例: %s", dup_examples))
+    }
     if (force_numeric) {
       result <- convert_to_numeric_safe(df)
+      if (length(result$non_numeric_cols) > 0) {
+        stop("丰度表格中包含非数值列，请检查：",
+             paste(head(result$non_numeric_cols, 5), collapse = ", "))
+      }
       df <- result$df
     }
     return(df)
